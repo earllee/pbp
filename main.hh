@@ -18,31 +18,43 @@ signals:
 
 class ChatDialog : public QDialog
 {
-	Q_OBJECT
+  Q_OBJECT
 
 public:
-	ChatDialog();
+  ChatDialog();
 
 public slots:
-	void gotReturnPressed();
+  void gotReturnPressed();
+  void postMessage(QString text);
+
+signals:
+  void newMessage(QString text);
 
 private:
-	QTextEdit *textview;
-	ChatQTextEdit *textline;
+  QTextEdit *textview;
+  ChatQTextEdit *textline;
 };
 
 class NetSocket : public QUdpSocket
 {
-	Q_OBJECT
+  Q_OBJECT
 
 public:
-	NetSocket();
+  NetSocket();
 
-	// Bind this socket to a Peerster-specific default port.
-	bool bind();
+  // Bind this socket to a Peerster-specific default port.
+  bool bind();
 
 private:
-	int myPortMin, myPortMax;
+  int myPortMin, myPortMax;
+  QUdpSocket *udp;
+
+public slots:
+  void sendMessage(QString text);
+  void receiveMessage();
+
+signals:
+  void receivedMessage(QString text);
 };
 
 #endif // PEERSTER_MAIN_HH

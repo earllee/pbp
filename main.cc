@@ -63,10 +63,15 @@ void ChatDialog::gotReturnPressed()
 	// Initially, just echo the string locally.
 	// Insert some networking code here...
 	qDebug() << "FIX: send message to other peers: " << textline->toPlainText();
-	textview->append(textline->toPlainText());
+	emit newMessage(textline->toPlainText());
 
 	// Clear the textline to get ready for the next input message.
 	textline->clear();
+}
+
+void ChatDialog::postMessage(QString text)
+{
+  textview->append(text);
 }
 
 NetSocket::NetSocket()
@@ -84,17 +89,48 @@ NetSocket::NetSocket()
 
 bool NetSocket::bind()
 {
-	// Try to bind to each of the range myPortMin..myPortMax in turn.
-	for (int p = myPortMin; p <= myPortMax; p++) {
-		if (QUdpSocket::bind(p)) {
-			qDebug() << "bound to UDP port " << p;
-			return true;
-		}
-	}
+  udp = new QUdpSocket(this);
 
-	qDebug() << "Oops, no ports in my default range " << myPortMin
-		<< "-" << myPortMax << " available";
-	return false;
+  // Try to bind to each of the range myPortMin..myPortMax in turn.
+  for (int p = myPortMin; p <= myPortMax; p++) {
+    if (udp->bind(p)) {
+      qDebug() << "bound to UDP port " << p;
+      connect(udp, SIGNAL(readyRead()),
+	      this, SLOT(receiveMessage()));
+      return true;
+    }
+  }
+
+  qDebug() << "Oops, no ports in my default range " << myPortMin
+	   << "-" << myPortMax << " available";
+  return false;
+}
+
+void NetSocket::sendMessage(QString text)
+{
+  QVariantMap *datagram = new QVariantMap;
+  datagram->insert("ChatText", QVariant(text));
+  QByteArray buffer;
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  stream << *datagram;
+  for (int p = myPortMin; p <= myPortMax; p++) {
+    udp->writeDatagram(buffer, QHostAddress(QHostAddress::LocalHost), p);
+  }
+}
+
+void NetSocket::receiveMessage()
+{
+  while(udp->hasPendingDatagrams()) {
+    QByteArray data;
+    data.resize(udp->pendingDatagramSize());
+    QHostAddress sender;
+    quint16 senderPort;
+    udp->readDatagram(data.data(), data.size(), &sender, &senderPort);
+    QDataStream stream(&data, QIODevice::ReadOnly);
+    QVariantMap datagram;
+    stream >> datagram;
+    emit receivedMessage(datagram.value("ChatText").toString());
+  }
 }
 
 int main(int argc, char **argv)
@@ -109,7 +145,12 @@ int main(int argc, char **argv)
 	// Create a UDP network socket
 	NetSocket sock;
 	if (!sock.bind())
-		exit(1);
+	  exit(1);
+
+	QObject::connect(&dialog, SIGNAL(newMessage(QString)),
+			 &sock, SLOT(sendMessage(QString)));
+	QObject::connect(&sock, SIGNAL(receivedMessage(QString)),
+			 &dialog, SLOT(postMessage(QString)));
 
 	// Enter the Qt main loop; everything else is event driven
 	return app.exec();
