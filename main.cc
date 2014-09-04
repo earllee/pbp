@@ -4,8 +4,23 @@
 #include <QVBoxLayout>
 #include <QApplication>
 #include <QDebug>
+#include <QKeyEvent>
 
 #include "main.hh"
+
+bool ChatQTextEdit::eventFilter(QObject *obj, QEvent *event)
+{
+  if (event->type() == QEvent::KeyPress) {
+    QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+    switch(keyEvent->key()) {
+    case Qt::Key_Enter:
+    case Qt::Key_Return:
+      emit returnPressed();
+      return true;
+    }
+  }
+  return false;
+}
 
 ChatDialog::ChatDialog()
 {
@@ -22,7 +37,9 @@ ChatDialog::ChatDialog()
 	//
 	// You might change this into a read/write QTextEdit,
 	// so that the user can easily enter multi-line messages.
-	textline = new QLineEdit(this);
+	textline = new ChatQTextEdit(this);
+	textline->setMaximumHeight(3 * textline->font().pointSize() + 32);
+	textline->installEventFilter(textline);
 
 	// Lay out the widgets to appear in the main window.
 	// For Qt widget and layout concepts see:
@@ -31,6 +48,9 @@ ChatDialog::ChatDialog()
 	layout->addWidget(textview);
 	layout->addWidget(textline);
 	setLayout(layout);
+
+	// set focus on text input
+	textline->setFocus();
 
 	// Register a callback on the textline's returnPressed signal
 	// so that we can send the message entered by the user.
@@ -42,8 +62,8 @@ void ChatDialog::gotReturnPressed()
 {
 	// Initially, just echo the string locally.
 	// Insert some networking code here...
-	qDebug() << "FIX: send message to other peers: " << textline->text();
-	textview->append(textline->text());
+	qDebug() << "FIX: send message to other peers: " << textline->toPlainText();
+	textview->append(textline->toPlainText());
 
 	// Clear the textline to get ready for the next input message.
 	textline->clear();

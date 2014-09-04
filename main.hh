@@ -6,6 +6,16 @@
 #include <QLineEdit>
 #include <QUdpSocket>
 
+class ChatQTextEdit : public QTextEdit {
+  Q_OBJECT
+public:
+  ChatQTextEdit(QWidget *parent) : QTextEdit(parent) {}
+protected:
+  bool eventFilter(QObject *obj, QEvent *event);
+signals:
+  void returnPressed();
+};
+
 class ChatDialog : public QDialog
 {
 	Q_OBJECT
@@ -18,7 +28,7 @@ public slots:
 
 private:
 	QTextEdit *textview;
-	QLineEdit *textline;
+	ChatQTextEdit *textline;
 };
 
 class NetSocket : public QUdpSocket
