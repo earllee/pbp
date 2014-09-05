@@ -42,13 +42,15 @@ ChatDialog::ChatDialog()
 
 void ChatDialog::gotReturnPressed()
 {
-	// Initially, just echo the string locally.
-	// Insert some networking code here...
-	qDebug() << "FIX: send message to other peers: " << textline->toPlainText();
-	emit newMessage(textline->toPlainText());
+  if(textline->toPlainText() != "") {
+    // Initially, just echo the string locally.
+    // Insert some networking code here...
+    qDebug() << "FIX: send message to other peers: " << textline->toPlainText();
+    emit newMessage(textline->toPlainText());
 
-	// Clear the textline to get ready for the next input message.
-	textline->clear();
+    // Clear the textline to get ready for the next input message.
+    textline->clear();
+  }
 }
 
 void ChatDialog::postMessage(QString text)

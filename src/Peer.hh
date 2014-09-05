@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QHostAddress>
-#include <QVarLengthArray>
+#include <QVector>
 
 class Peer : public QObject
 {
@@ -13,13 +13,23 @@ private:
   QString name;
   QHostAddress host;
   quint16 port;
-  QVarLengthArray<QString> messages;
+  QVector<QString> messages;
   quint32 need;
+  PeerConnection connection;
 public:
   Peer(QString, QHostAddress, quint16);
-  Add(quint32 seqNo, QString text);
-  Get(quint32 seqNo);
-  Next();
+  void newMessage(QVariantMap, QVariantMap);
+  void add(quint32, QString);
+  QString get(quint32);
+  quint32 next();
+  QString name();
+  void endConnection();
+public slots:
+  void checkConnection();
+signals:
+  void chatMessage(QString);
+  void sendMessage(QString, quint32);
+  void sendStatus(QString);
 };
 
 #endif

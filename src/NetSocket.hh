@@ -2,6 +2,8 @@
 #define NETSOCKET_HH
 
 #include <QUdpSocket>
+#include <Peer>
+#include <PeerList>
 
 class NetSocket : public QUdpSocket
 {
@@ -12,16 +14,17 @@ public:
 
   // Bind this socket to a Peerster-specific default port.
   bool bind();
-
 private:
   int myPortMin, myPortMax;
+  Peer *me;
+  PeerList *peers;
 
 public slots:
-  void sendMessage(QString text);
+  void sendMessage(&Peer, QVariantMap);
   void receiveMessage();
 
 signals:
-  void receivedMessage(QString text);
+  void receivedMessage(&Peer, QVariantMap);
 };
 
 #endif

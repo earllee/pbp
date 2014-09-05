@@ -3,6 +3,7 @@
 #include <ChatDialog.hh>
 #include <ChatQTextEdit.hh>
 #include <NetSocket.hh>
+#include <Peer.hh>
 #include <QApplication>
 
 int main(int argc, char **argv)
@@ -23,6 +24,8 @@ int main(int argc, char **argv)
 			 &sock, SLOT(sendMessage(QString)));
 	QObject::connect(&sock, SIGNAL(receivedMessage(QString)),
 			 &dialog, SLOT(postMessage(QString)));
+
+	Peer blah("test", QHostAddress::LocalHost, 1234);
 
 	// Enter the Qt main loop; everything else is event driven
 	return app.exec();

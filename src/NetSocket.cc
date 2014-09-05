@@ -23,6 +23,8 @@ bool NetSocket::bind()
   for (int p = myPortMin; p <= myPortMax; p++) {
     if (QUdpSocket::bind(p)) {
       qDebug() << "bound to UDP port " << p;
+      // make this randomized
+      me = new Peer("hi", QHostAddress::LocalHost, p);
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       return true;
@@ -34,16 +36,26 @@ bool NetSocket::bind()
   return false;
 }
 
+
 void NetSocket::sendMessage(QString text)
 {
-  QVariantMap *datagram = new QVariantMap;
+  quint32 seqNo = me->Next();
+  me->Add(me->Next(), text);
+
+  QVariantMap datagram;
   datagram->insert("ChatText", QVariant(text));
+  datagram->insert("Origin", QVariant(me->Name()));
+  datagram->insert("SeqNo", QVariant(seqNo));
+  rumor(datagram);
+}
+
+void NetSocket::rumor(QVariantMap &datagram) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << *datagram;
-  for (int p = myPortMin; p <= myPortMax; p++) {
-    this->writeDatagram(buffer, QHostAddress(QHostAddress::LocalHost), p);
-  }
+
+  Peer *connection = peers->random();
+  writeDatagram(&buffer, connection->host, connection->port);
 }
 
 void NetSocket::receiveMessage()
@@ -57,6 +69,9 @@ void NetSocket::receiveMessage()
     QDataStream stream(&data, QIODevice::ReadOnly);
     QVariantMap datagram;
     stream >> datagram;
+
+    Peer *connection = peers->get(datagram.value("Origin"));
+      
     emit receivedMessage(datagram.value("ChatText").toString());
   }
 }
