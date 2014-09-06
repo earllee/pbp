@@ -3,25 +3,64 @@
 #include <Peer.hh>
 #include <QVector>
 
-Peer::Peer(QString n, QHostAddress h, quint16 p)
+Peer::Peer(QHostAddress h, quint16 p)
 {
-  name = n;
-  host = h;
+  host = new QHostAddress(&h);
   port = p;
-  messages = QVector<QString>();
-  need = 1;
+  connected = false;
+  waiting = false;
+  initial = nullptr;
+  timer = new QTimer(this);
+  timer->setInterval(1337);
+  timer->setSingleShot(true);
+  connect(timer, SIGNAL(timeout()),
+	  this, SLOT(endConnection()));
 }
 
-quint32 Peer::Next()
-{
-  return need;
+Peer::~Peer() {
+  delete timer;
+  delete host;
 }
 
-QString Peer::Get(quint32 seqNo)
-{
-  return messages.value(seqNo - 1);
+void Peer::connect() {
+  connected = true;
+  timer->stop();
 }
 
+void Peer::connect(QVariantMap msg) {
+  connect();
+  initial = new QVariantMap(&msg);
+}
+
+void Peer::wait() {
+  timer->start();
+}
+
+QHostAddress Peer::host() {
+  return *host;
+}
+
+quint16 Peer::port() {
+  return port;
+}
+
+bool Peer::connected() {
+  return connected;
+}
+
+void Peer::endConnection() {
+  // keep rumormongering with 50% chance
+  if(initial != nullptr && qrand() % 2 == 0) {
+    emit rumor(initial);
+  }
+
+  delete initial;
+  initial = nullptr;
+  connected = false;
+  timer->stop();
+}
+
+/*
 void Peer::Add(quint32 seqNo, QString text)
 {
   if((int)seqNo > messages.size()) {
@@ -41,3 +80,4 @@ void Peer::Add(quint32 seqNo, QString text)
     }
   }
 }
+*/

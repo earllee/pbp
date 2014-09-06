@@ -14,10 +14,10 @@ public:
 
 public slots:
   void gotReturnPressed();
-  void postMessage(QString text);
+  void postMessage(QString);
 
 signals:
-  void newMessage(QString text);
+  void newLocalMessage(QString);
 
 private:
   QTextEdit *textview;

@@ -10,26 +10,24 @@ class Peer : public QObject
   Q_OBJECT
 
 private:
-  QString name;
-  QHostAddress host;
+  QHostAddress *host;
   quint16 port;
-  QVector<QString> messages;
-  quint32 need;
-  PeerConnection connection;
+  bool connected;
+  QVariantMap *initial;
+  QTimer *timer;
 public:
-  Peer(QString, QHostAddress, quint16);
-  void newMessage(QVariantMap, QVariantMap);
-  void add(quint32, QString);
-  QString get(quint32);
-  quint32 next();
-  QString name();
-  void endConnection();
+  Peer(QHostAddress, quint16);
+  ~Peer();
+  void connect();
+  void connect(QVariantMap);
+  void wait();
+  QHostAddress host();
+  quint16 port();
+  bool connected();
 public slots:
-  void checkConnection();
+  void endConnection();
 signals:
-  void chatMessage(QString);
-  void sendMessage(QString, quint32);
-  void sendStatus(QString);
+  void rumor(QVariantMap);
 };
 
 #endif

@@ -20,12 +20,10 @@ int main(int argc, char **argv)
 	if (!sock.bind())
 	  exit(1);
 
-	QObject::connect(&dialog, SIGNAL(newMessage(QString)),
-			 &sock, SLOT(sendMessage(QString)));
-	QObject::connect(&sock, SIGNAL(receivedMessage(QString)),
+	QObject::connect(&dialog, SIGNAL(newLocalMessage(QString)),
+			 &sock, SLOT(localMessage(QString)));
+	QObject::connect(&sock, SIGNAL(chatMessage(QString)),
 			 &dialog, SLOT(postMessage(QString)));
-
-	Peer blah("test", QHostAddress::LocalHost, 1234);
 
 	// Enter the Qt main loop; everything else is event driven
 	return app.exec();
