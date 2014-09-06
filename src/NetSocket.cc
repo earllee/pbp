@@ -51,9 +51,9 @@ bool NetSocket::bind() {
 
 void NetSocket::localMessage(QString text) {
   QVariantMap datagram;
-  datagram->insert("ChatText", QVariant(text));
-  datagram->insert("Origin", QVariant(peers->myOrigin()));
-  datagram->insert("SeqNo", QVariant(peers->mySeqNo()));
+  datagram.insert("ChatText", QVariant(text));
+  datagram.insert("Origin", QVariant(peers->myOrigin()));
+  datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
   // nullptr means self
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }

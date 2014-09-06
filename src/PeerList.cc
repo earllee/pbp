@@ -7,6 +7,7 @@ PeerList::PeerList() {
   peers = new QVector<*Peer>();
   connect(this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SLOT(sentMessage(QHostAddress, quint16, QVariantMap)));
+  origins = new OriginList();
 }
 
 PeerList::~PeerList() {
@@ -14,6 +15,7 @@ PeerList::~PeerList() {
     delete p;
   }
   delete peers;
+  delete me;
 }
 
 Peer *PeerList::add(QHostAddress host, quint16 port) {
@@ -54,7 +56,7 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
       }
 
       QVariantMap message = origins->nextNeededMessage(datagram);
-      if(QVariantMap.empty()) {
+      if(message.empty()) {
 	sender->endConnection();
       } else {
 	emit sendMessage(host, port, message);
