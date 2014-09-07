@@ -1,9 +1,8 @@
-#ifndef PEERLIST_HH
-#define PEERLIST_HH
+#ifndef ORIGINLIST_HH
+#define ORIGINLIST_HH
 
 #include <QObject>
-#include <QHostAddress>
-#include <Peer.hh>
+#include <Origin.hh>
 
 class OriginList : public QObject
 {
