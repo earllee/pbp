@@ -4,8 +4,7 @@
 #include <QUdpSocket>
 #include <PeerList.hh>
 
-class NetSocket : public QUdpSocket
-{
+class NetSocket : public QUdpSocket {
   Q_OBJECT
 
 public:
@@ -23,6 +22,7 @@ public slots:
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
   void relayMessage(QString);
+  void addPeer(QString);
 signals:
   void postMessage(QString);
 };

@@ -6,8 +6,7 @@
 #include <QVariant>
 #include <Origin.hh>
 
-class OriginList : public QObject
-{
+class OriginList : public QObject {
   Q_OBJECT
 
 private:

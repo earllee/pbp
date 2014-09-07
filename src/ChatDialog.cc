@@ -3,8 +3,7 @@
 #include <ChatDialog.hh>
 #include <QVBoxLayout>
 
-ChatDialog::ChatDialog()
-{
+ChatDialog::ChatDialog() {
 	setWindowTitle("Peerster");
 
 	// Read-only text box where we display messages from everyone.
@@ -22,25 +21,37 @@ ChatDialog::ChatDialog()
 	textline->setMaximumHeight(3 * textline->font().pointSize() + 32);
 	textline->installEventFilter(textline);
 
+	peerInput = new QLineEdit(this);
+	
+
 	// Lay out the widgets to appear in the main window.
 	// For Qt widget and layout concepts see:
 	// http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
 	QVBoxLayout *layout = new QVBoxLayout();
 	layout->addWidget(textview);
 	layout->addWidget(textline);
+	layout->addWidget(peerInput);
 	setLayout(layout);
 
 	// set focus on text input
 	textline->setFocus();
 
+
 	// Register a callback on the textline's returnPressed signal
 	// so that we can send the message entered by the user.
 	connect(textline, SIGNAL(returnPressed()),
 		this, SLOT(gotReturnPressed()));
+
+	connect(peerInput, SIGNAL(returnPressed()),
+		this, SLOT(newPeer()));
 }
 
-void ChatDialog::gotReturnPressed()
-{
+ChatDialog::~ChatDialog() {
+  delete textline;
+  delete textview;
+}
+
+void ChatDialog::gotReturnPressed() {
   if(textline->toPlainText() != "") {
     // Initially, just echo the string locally.
     // Insert some networking code here...
@@ -51,7 +62,12 @@ void ChatDialog::gotReturnPressed()
   }
 }
 
-void ChatDialog::postMessage(QString text)
-{
+void ChatDialog::postMessage(QString text) {
   textview->append(text);
+}
+
+void ChatDialog::newPeer() {
+  QString peer = peerInput->text();
+  peerInput->clear();
+  emit addPeer(peer);
 }

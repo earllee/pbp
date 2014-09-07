@@ -8,8 +8,7 @@
 #include <Peer.hh>
 #include <OriginList.hh>
 
-class PeerList : public QObject
-{
+class PeerList : public QObject {
   Q_OBJECT
 
 private:

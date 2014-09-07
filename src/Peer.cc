@@ -5,8 +5,7 @@
 #include <QVariant>
 #include <QTimer>
 
-Peer::Peer(QHostAddress h, quint16 p)
-{
+Peer::Peer(QHostAddress h, quint16 p) {
   host = new QHostAddress(h);
   port = p;
   connected = false;

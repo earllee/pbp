@@ -24,9 +24,15 @@ int main(int argc, char **argv) {
   }
 
   QObject::connect(&dialog, SIGNAL(newMessage(QString)),
-  &sock, SLOT(localMessage(QString)));
+		   &sock, SLOT(localMessage(QString)));
   QObject::connect(&sock, SIGNAL(postMessage(QString)),
-  &dialog, SLOT(postMessage(QString)));
+		   &dialog, SLOT(postMessage(QString)));
+  QObject::connect(&dialog, SIGNAL(addPeer(QString)),
+		   &sock, SLOT(addPeer(QString)));
+
+  foreach(QString s, app.arguments().mid(1)) {
+    sock.addPeer(s);
+  }
 
   // Enter the Qt main loop; everything else is event driven
   return app.exec();  

@@ -6,8 +6,7 @@
 #include <QVariant>
 #include <QTimer>
 
-class Peer : public QObject
-{
+class Peer : public QObject {
   Q_OBJECT
 
 private:

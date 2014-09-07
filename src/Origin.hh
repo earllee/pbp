@@ -4,8 +4,7 @@
 #include <QObject>
 #include <QVariant>
 
-class Origin : public QObject
-{
+class Origin : public QObject {
   Q_OBJECT
 
 private:

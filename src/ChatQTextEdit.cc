@@ -3,8 +3,7 @@
 #include <ChatQTextEdit.hh>
 #include <QKeyEvent>
 
-bool ChatQTextEdit::eventFilter(QObject *obj, QEvent *event)
-{
+bool ChatQTextEdit::eventFilter(QObject *obj, QEvent *event) {
   if (event->type() == QEvent::KeyPress) {
     QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
     switch(keyEvent->key()) {

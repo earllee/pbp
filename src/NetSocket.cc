@@ -8,6 +8,7 @@
 #include <QByteArray>
 #include <QHostAddress>
 #include <QDataStream>
+#include <QHostInfo>
 
 NetSocket::NetSocket() {
   // Pick a range of four UDP ports to try to allocate by default,
@@ -36,10 +37,7 @@ bool NetSocket::bind() {
       peers->setMe(QHostAddress::LocalHost, p);
       for (int port = myPortMin; port <= myPortMax; port++) {
 	if (port != p) {
-	  // change later
-	  if(port == p + 1 || port == p - 1) {
-	    peers->add(QHostAddress::LocalHost, port);
-	  }
+	  peers->add(QHostAddress::LocalHost, port);
 	}
       }
       connect(peers, SIGNAL(postMessage(QString)),
@@ -55,6 +53,33 @@ bool NetSocket::bind() {
   return false;
 }
 
+void NetSocket::addPeer(QString text) {
+  int splitter = text.lastIndexOf(':');
+  if(splitter == -1 || splitter == text.size() - 1) {
+    qDebug() << "Invalid peer" << text;
+  } else {
+    bool ok;
+    quint16 port = text.mid(splitter + 1).toUInt(&ok);
+    if(!ok) {
+      qDebug() << "Invalid port" << text;
+    } else {
+      QString hostString = text.left(splitter);
+      QHostAddress host(hostString);
+      if(!host.isNull()) {
+	peers->add(host, port);
+	qDebug() << "Peer added" << text;
+      } else {
+	QHostInfo info = QHostInfo::fromName(hostString);
+	if(info.addresses().empty()) {
+	  qDebug() << "Invalid host" << text;
+	} else {
+	  peers->add(info.addresses().first(), port);
+	  qDebug() << "Peer added" << text;
+	}
+      }
+    }
+  }
+}
 
 void NetSocket::localMessage(QString text) {
   QVariantMap datagram;
