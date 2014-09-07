@@ -2,6 +2,8 @@
 #define ORIGINLIST_HH
 
 #include <QObject>
+#include <QVector>
+#include <QVariant>
 #include <Origin.hh>
 
 class OriginList : public QObject
@@ -10,7 +12,7 @@ class OriginList : public QObject
 
 private:
   Origin *me;
-  QVector<*Origin> *origins;
+  QVector<Origin*> *origins;
   Origin *get(QString);
 public:
   OriginList();
@@ -19,6 +21,9 @@ public:
   QVariantMap nextNeededMessage(QVariantMap);
   bool addMessage(QVariantMap);
   QVariantMap status();
+  quint32 mySeqNo();
+  QString myName();
+  Origin *add(QString);
 };
 
 #endif

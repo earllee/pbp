@@ -86,8 +86,8 @@ quint16 PeerList::myPort() {
   return me->port();
 }
 
-QString PeerList::myOrigin() {
-  return origins->myOrigin();
+QString PeerList::myName() {
+  return origins->myName();
 }
 
 quint32 PeerList::mySeqNo() {

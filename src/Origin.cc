@@ -25,7 +25,7 @@ quint32 Origin::next() {
 
 QVariantMap Origin::message(quint32 sn) {
   QVariantMap datagram;
-  datagram.insert("ChatText", QVariant(messages->value(sn)));
+  datagram.insert("ChatText", QVariant(messages->value(sn - 1)));
   datagram.insert("Origin", QVariant(name));
   datagram.insert("SeqNo", QVariant(sn));
   return datagram;
@@ -44,9 +44,7 @@ bool Origin::addMessage(quint32 sn, QString text) {
       // first)
       for(; messages->value(seqNo - 1) != ""; seqNo++) {
 	// emit all messages that were waiting
-	QString msg(name);
-	msg.append(": ");
-	msg.append(messages->value(seqNo-1));
+	QString msg = QString("%1: %2").arg(name).arg(messages->value(seqNo-1));
 	qDebug() << msg;
 	emit chatMessage(msg);
       }

@@ -1,16 +1,19 @@
 #include <unistd.h>
 
 #include <OriginList.hh>
+#include <Origin.hh>
 #include <QVector>
+#include <QVariant>
+#include <QTime>
 
 OriginList::OriginList() {
-  // fix later
-  me = new Origin("lololol");
-  origins = new QVector<*Origin>();
+  qsrand(QTime::currentTime().msec());
+  me = new Origin(QString("yoloswag%1").arg(qrand()));
+  origins = new QVector<Origin*>();
 }
 
 OriginList::~OriginList() {
-  foreach(Origin *o, origins) {
+  foreach(Origin *o, *origins) {
     delete o;
   }
   delete origins;
@@ -18,12 +21,15 @@ OriginList::~OriginList() {
 }
 
 Origin *OriginList::get(QString name) {
- foreach(Origin *o, origins) {
-   if(o->name() == name) {
-     return o;
-   }
- }
- return nullptr;
+  if(name == myName()) {
+    return me;
+  }
+  foreach(Origin *o, *origins) {
+    if(o->getName() == name) {
+      return o;
+    }
+  }
+ return NULL;
 }
 
 Origin *OriginList::add(QString name) {
@@ -38,11 +44,11 @@ bool OriginList::needMessage(QVariantMap want) {
   bool need = false;
   foreach(QString name, status.keys()) {
     o = get(name);
-    if(o == nullptr) {
+    if(o == NULL) {
       add(name);
       need = true;
     } else {
-      if(status.value(name).toUInt() >= o->next()) {
+      if(status.value(name).toUInt() - 1 >= o->next()) {
 	need = true;
       }
     }
@@ -55,8 +61,8 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
   Origin *o;
   foreach(QString name, status.keys()) {
     o = get(name);
-    if(o != nullptr) {
-      int needed = status.value(name).toUInt();
+    if(o != NULL) {
+      uint needed = status.value(name).toUInt();
       if(needed < o->next()) {
 	return o->message(needed);
       }
@@ -68,7 +74,7 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
 bool OriginList::addMessage(QVariantMap message) {
   QString name = message.value("Origin").toString();
   Origin *o = get(name);
-  if(o == nullptr) {
+  if(o == NULL) {
     o = add(name);
   }
   return o->addMessage(message.value("SeqNo").toUInt(), message.value("ChatText").toString());
@@ -76,10 +82,19 @@ bool OriginList::addMessage(QVariantMap message) {
 
 QVariantMap OriginList::status() {
   QVariantMap status;
-  foreach(Origin *o, origins) {
-    status.insert(o->name(), QVariant(origin->next()));
+  status.insert(myName(), mySeqNo());
+  foreach(Origin *o, *origins) {
+    status.insert(o->getName(), QVariant(o->next()));
   }
   QVariantMap want;
   want.insert("Want", QVariant(status));
   return want;
+}
+
+QString OriginList::myName() {
+  return me->getName();
+}
+
+quint32 OriginList::mySeqNo() {
+  return me->next();
 }
