@@ -1,15 +1,17 @@
 #include <unistd.h>
 
 #include <Peer.hh>
-#include <QVector>
+#include <QHostAddress>
+#include <QVariant>
+#include <QTimer>
+#include <QDebug>
 
 Peer::Peer(QHostAddress h, quint16 p)
 {
-  host = new QHostAddress(&h);
+  host = new QHostAddress(h);
   port = p;
   connected = false;
-  waiting = false;
-  initial = nullptr;
+  initial = NULL;
   timer = new QTimer(this);
   timer->setInterval(1337);
   timer->setSingleShot(true);
@@ -22,40 +24,42 @@ Peer::~Peer() {
   delete host;
 }
 
-void Peer::connect() {
+void Peer::makeConnection() {
   connected = true;
   timer->stop();
 }
 
-void Peer::connect(QVariantMap msg) {
-  connect();
-  initial = new QVariantMap(&msg);
+void Peer::makeConnection(QVariantMap msg) {
+  makeConnection();
+  initial = new QVariantMap(msg);
 }
 
 void Peer::wait() {
   timer->start();
 }
 
-QHostAddress Peer::host() {
+QHostAddress Peer::getHost() {
   return *host;
 }
 
-quint16 Peer::port() {
+quint16 Peer::getPort() {
   return port;
 }
 
-bool Peer::connected() {
+bool Peer::isConnected() {
   return connected;
 }
 
 void Peer::endConnection() {
+  qDebug() << "ending connection";
   // keep rumormongering with 50% chance
-  if(initial != nullptr && qrand() % 2 == 0) {
-    emit rumor(initial);
+  if(initial != NULL && qrand() % 2 == 0) {
+    qDebug() << *initial;
+    emit rumor(*initial);
   }
 
   delete initial;
-  initial = nullptr;
+  initial = NULL;
   connected = false;
   timer->stop();
 }

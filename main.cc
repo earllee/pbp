@@ -3,18 +3,18 @@
 #include <QDebug>
 #include <Origin.hh>
 #include <OriginList.hh>
+#include <Peer.hh>
 // #include <ChatDialog.hh>
 // #include <ChatQTextEdit.hh>
 // #include <NetSocket.hh>
 // #include <Peer.hh>
-// #include <QApplication>
+#include <QApplication>
 
 int main(int argc, char **argv)
 {
-  /*
   // Initialize Qt toolkit
   QApplication app(argc,argv);
-
+  /*
   // Create an initial chat dialog window
   ChatDialog dialog;
   dialog.show();
@@ -29,10 +29,8 @@ int main(int argc, char **argv)
   QObject::connect(&sock, SIGNAL(chatMessage(QString)),
   &dialog, SLOT(postMessage(QString)));
 
-  // Enter the Qt main loop; everything else is event driven
-  return app.exec();
   */
-  
+
   // test origin
   Origin a("harro");
   a.addMessage(1, "herro");
@@ -69,5 +67,26 @@ int main(int argc, char **argv)
   otherWant2.insert("harro", QVariant(1));
   otherStatus2.insert("Want", QVariant(otherWant2));
   qDebug() << hello.nextNeededMessage(otherStatus2);
+
+  // test peer
+  Peer bud(QHostAddress::LocalHost, 123);
+  qDebug() << bud.getHost();
+  qDebug() << bud.getPort();
+  qDebug() << bud.isConnected();
+  bud.makeConnection();
+  qDebug() << bud.isConnected();
+  bud.endConnection();
+  qDebug() << bud.isConnected();
+  
+  // test waiting
+  qDebug() << "test waiting";
+  bud.makeConnection();
+  bud.wait();
+  bud.makeConnection(a.message(1));
+  qDebug() << bud.isConnected();
+  bud.wait();
+
+  // Enter the Qt main loop; everything else is event driven
+  return app.exec();  
 }
 

@@ -3,7 +3,8 @@
 
 #include <QObject>
 #include <QHostAddress>
-#include <QVector>
+#include <QVariant>
+#include <QTimer>
 
 class Peer : public QObject
 {
@@ -18,12 +19,12 @@ private:
 public:
   Peer(QHostAddress, quint16);
   ~Peer();
-  void connect();
-  void connect(QVariantMap);
+  void makeConnection();
+  void makeConnection(QVariantMap);
   void wait();
-  QHostAddress host();
-  quint16 port();
-  bool connected();
+  QHostAddress getHost();
+  quint16 getPort();
+  bool isConnected();
 public slots:
   void endConnection();
 signals:
