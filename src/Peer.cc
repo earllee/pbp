@@ -4,7 +4,6 @@
 #include <QHostAddress>
 #include <QVariant>
 #include <QTimer>
-#include <QDebug>
 
 Peer::Peer(QHostAddress h, quint16 p)
 {

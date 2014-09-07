@@ -2,7 +2,6 @@
 
 #include <ChatDialog.hh>
 #include <QVBoxLayout>
-#include <QDebug>
 
 ChatDialog::ChatDialog()
 {

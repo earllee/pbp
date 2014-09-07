@@ -5,7 +5,6 @@
 #include <QVector>
 #include <QVariant>
 #include <QTime>
-#include <QDebug>
 
 OriginList::OriginList() {
   qsrand(QTime::currentTime().msec());
@@ -105,6 +104,5 @@ quint32 OriginList::mySeqNo() {
 }
 
 void OriginList::relayMessage(QString msg) {
-  qDebug() << msg;
   emit postMessage(msg);
 }

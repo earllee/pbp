@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QHostAddress>
 #include <QVector>
+#include <QTimer>
 #include <Peer.hh>
 #include <OriginList.hh>
 
@@ -15,7 +16,9 @@ private:
   Peer *me;
   QVector<Peer*> *peers;
   OriginList *origins;
+  QTimer *entropyTimer;
   Peer *get(QHostAddress, quint16);
+  Peer *random();
 public:
   PeerList();
   ~PeerList();
@@ -30,6 +33,7 @@ public slots:
   void rumor(QVariantMap);
   void sentMessage(QHostAddress, quint16, QVariantMap);
   void relayMessage(QString);
+  void antiEntropy();
 signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void postMessage(QString);

@@ -2,6 +2,7 @@
 
 #include <QHostAddress>
 #include <QVector>
+#include <QTimer>
 #include <OriginList.hh>
 #include <Peer.hh>
 #include <PeerList.hh>
@@ -13,6 +14,11 @@ PeerList::PeerList() {
   origins = new OriginList();
   connect(origins, SIGNAL(postMessage(QString)),
 	  this, SLOT(relayMessage(QString)));
+  entropyTimer = new QTimer(this);
+  entropyTimer->setInterval(10000);
+  connect(entropyTimer, SIGNAL(timeout()),
+	  this, SLOT(antiEntropy()));
+  entropyTimer->start();
 }
 
 PeerList::~PeerList() {
@@ -21,6 +27,7 @@ PeerList::~PeerList() {
   }
   delete peers;
   delete me;
+  delete entropyTimer;
 }
 
 Peer *PeerList::add(QHostAddress host, quint16 port) {
@@ -96,7 +103,7 @@ quint32 PeerList::mySeqNo() {
   return origins->mySeqNo();
 }
 
-void PeerList::rumor(QVariantMap datagram) {
+Peer *PeerList::random() {
   QVector<Peer*> available = QVector<Peer*>();
   foreach(Peer *p, *peers) {
     if(!p->isConnected()) {
@@ -105,9 +112,25 @@ void PeerList::rumor(QVariantMap datagram) {
   }
   int nAvailable = available.size();
   if(nAvailable > 0) {
-    Peer *recipient = available.value(qrand() % available.size());
+    return available.value(qrand() % nAvailable);
+  } else {
+    return NULL;
+  }
+}
+
+void PeerList::rumor(QVariantMap datagram) {
+  Peer *recipient = random();
+  if(recipient != NULL) {
     recipient->makeConnection(datagram);
     emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
+  }
+}
+
+void PeerList::antiEntropy() {
+  Peer *recipient = random();
+  if(recipient != NULL) {
+    recipient->makeConnection();
+    emit sendMessage(recipient->getHost(), recipient->getPort(), origins->status());
   }
 }
 
