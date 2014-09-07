@@ -20,7 +20,7 @@ public:
   QVariantMap message(quint32);
   bool addMessage(quint32, QString);
 signals:
-  void chatMessage(QString);
+  void postMessage(QString);
 };
 
 #endif

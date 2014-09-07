@@ -2,7 +2,7 @@
 #define NETSOCKET_HH
 
 #include <QUdpSocket>
-#include <PeerList>
+#include <PeerList.hh>
 
 class NetSocket : public QUdpSocket
 {
@@ -19,8 +19,12 @@ private:
   PeerList *peers;
 
 public slots:
+  void localMessage(QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
+  void relayMessage(QString);
+signals:
+  void postMessage(QString);
 };
 
 #endif

@@ -5,13 +5,14 @@
 #include <OriginList.hh>
 #include <Peer.hh>
 #include <PeerList.hh>
-#include <QDebug>
 
 PeerList::PeerList() {
   peers = new QVector<Peer*>();
   connect(this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SLOT(sentMessage(QHostAddress, quint16, QVariantMap)));
   origins = new OriginList();
+  connect(origins, SIGNAL(postMessage(QString)),
+	  this, SLOT(relayMessage(QString)));
 }
 
 PeerList::~PeerList() {
@@ -111,7 +112,10 @@ void PeerList::rumor(QVariantMap datagram) {
 }
 
 void PeerList::sentMessage(QHostAddress host, quint16 port, QVariantMap datagram) {
-  qDebug() << datagram;
   Peer *recipient = get(host, port);
   recipient->wait();
+}
+
+void PeerList::relayMessage(QString msg) {
+  emit postMessage(msg);
 }

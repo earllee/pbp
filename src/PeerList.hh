@@ -29,8 +29,10 @@ public:
 public slots:
   void rumor(QVariantMap);
   void sentMessage(QHostAddress, quint16, QVariantMap);
+  void relayMessage(QString);
 signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
+  void postMessage(QString);
 };
 
 #endif

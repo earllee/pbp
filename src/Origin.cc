@@ -45,8 +45,7 @@ bool Origin::addMessage(quint32 sn, QString text) {
       for(; messages->value(seqNo - 1) != ""; seqNo++) {
 	// emit all messages that were waiting
 	QString msg = QString("%1: %2").arg(name).arg(messages->value(seqNo-1));
-	qDebug() << msg;
-	emit chatMessage(msg);
+	emit postMessage(msg);
       }
     }
     return true;

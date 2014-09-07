@@ -5,10 +5,13 @@
 #include <QVector>
 #include <QVariant>
 #include <QTime>
+#include <QDebug>
 
 OriginList::OriginList() {
   qsrand(QTime::currentTime().msec());
   me = new Origin(QString("yoloswag%1").arg(qrand()));
+  connect(me, SIGNAL(postMessage(QString)),
+	  this, SLOT(relayMessage(QString)));
   origins = new QVector<Origin*>();
 }
 
@@ -34,6 +37,8 @@ Origin *OriginList::get(QString name) {
 
 Origin *OriginList::add(QString name) {
   Origin *newOrigin = new Origin(name);
+  connect(newOrigin, SIGNAL(postMessage(QString)),
+	  this, SLOT(relayMessage(QString)));
   origins->append(newOrigin);
   return newOrigin;
 }
@@ -97,4 +102,9 @@ QString OriginList::myName() {
 
 quint32 OriginList::mySeqNo() {
   return me->next();
+}
+
+void OriginList::relayMessage(QString msg) {
+  qDebug() << msg;
+  emit postMessage(msg);
 }

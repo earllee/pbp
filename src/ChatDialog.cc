@@ -45,7 +45,6 @@ void ChatDialog::gotReturnPressed()
   if(textline->toPlainText() != "") {
     // Initially, just echo the string locally.
     // Insert some networking code here...
-    qDebug() << "FIX: send message to other peers: " << textline->toPlainText();
     emit newMessage(textline->toPlainText());
 
     // Clear the textline to get ready for the next input message.

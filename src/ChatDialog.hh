@@ -17,7 +17,7 @@ public slots:
   void postMessage(QString);
 
 signals:
-  void newLocalMessage(QString);
+  void newMessage(QString);
 
 private:
   QTextEdit *textview;

@@ -24,6 +24,10 @@ public:
   quint32 mySeqNo();
   QString myName();
   Origin *add(QString);
+public slots:
+  void relayMessage(QString);
+signals:
+  void postMessage(QString);
 };
 
 #endif

@@ -3,8 +3,11 @@
 #include <NetSocket.hh>
 #include <QUdpSocket>
 #include <QDebug>
-#include <Peer>
-#include <PeerList>
+#include <QVariant>
+#include <PeerList.hh>
+#include <QByteArray>
+#include <QHostAddress>
+#include <QDataStream>
 
 NetSocket::NetSocket() {
   // Pick a range of four UDP ports to try to allocate by default,
@@ -27,16 +30,20 @@ bool NetSocket::bind() {
   for (int p = myPortMin; p <= myPortMax; p++) {
     if (QUdpSocket::bind(p)) {
       qDebug() << "bound to UDP port " << p;
-      // make this randomized
       peers = new PeerList();
       connect(peers, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	      this, SLOT(sendMessage(QHostAddress, quint16, QVariantMap)));
       peers->setMe(QHostAddress::LocalHost, p);
       for (int port = myPortMin; port <= myPortMax; port++) {
 	if (port != p) {
-	  peers->add(QHostAddress::LocalHost, port);
+	  // change later
+	  if(port == p + 1 || port == p - 1) {
+	    peers->add(QHostAddress::LocalHost, port);
+	  }
 	}
       }
+      connect(peers, SIGNAL(postMessage(QString)),
+	      this, SLOT(relayMessage(QString)));
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       return true;
@@ -54,7 +61,6 @@ void NetSocket::localMessage(QString text) {
   datagram.insert("ChatText", QVariant(text));
   datagram.insert("Origin", QVariant(peers->myName()));
   datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
-  // nullptr means self
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -63,7 +69,7 @@ void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagra
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << datagram;
 
-  writeDatagram(&buffer, host, port);
+  writeDatagram(buffer, host, port);
 }
 
 void NetSocket::receiveMessage() {
@@ -79,4 +85,8 @@ void NetSocket::receiveMessage() {
     
     peers->newMessage(senderAddress, senderPort, datagram);
   }
+}
+
+void NetSocket::relayMessage(QString msg) {
+  emit postMessage(msg);
 }
