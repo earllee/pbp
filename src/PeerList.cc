@@ -104,15 +104,9 @@ quint32 PeerList::mySeqNo() {
 }
 
 Peer *PeerList::random() {
-  QVector<Peer*> available = QVector<Peer*>();
-  foreach(Peer *p, *peers) {
-    if(!p->isConnected()) {
-      available.append(p);
-    }
-  }
-  int nAvailable = available.size();
-  if(nAvailable > 0) {
-    return available.value(qrand() % nAvailable);
+  int nPeers = peers->size();
+  if(nPeers > 0) {
+    return peers->value(qrand() % nPeers);
   } else {
     return NULL;
   }

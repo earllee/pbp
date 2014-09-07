@@ -12,7 +12,6 @@ class Peer : public QObject {
 private:
   QHostAddress *host;
   quint16 port;
-  bool connected;
   QVariantMap *initial;
   QTimer *timer;
 public:
@@ -23,7 +22,6 @@ public:
   void wait();
   QHostAddress getHost();
   quint16 getPort();
-  bool isConnected();
 public slots:
   void endConnection();
 signals:

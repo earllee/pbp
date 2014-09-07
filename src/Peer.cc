@@ -8,10 +8,9 @@
 Peer::Peer(QHostAddress h, quint16 p) {
   host = new QHostAddress(h);
   port = p;
-  connected = false;
   initial = NULL;
   timer = new QTimer(this);
-  timer->setInterval(1337);
+  timer->setInterval(1000);
   timer->setSingleShot(true);
   connect(timer, SIGNAL(timeout()),
 	  this, SLOT(endConnection()));
@@ -23,7 +22,6 @@ Peer::~Peer() {
 }
 
 void Peer::makeConnection() {
-  connected = true;
   timer->stop();
 }
 
@@ -44,10 +42,6 @@ quint16 Peer::getPort() {
   return port;
 }
 
-bool Peer::isConnected() {
-  return connected;
-}
-
 void Peer::endConnection() {
   // keep rumormongering with 50% chance
   if(initial != NULL && qrand() % 2 == 0) {
@@ -56,6 +50,5 @@ void Peer::endConnection() {
 
   delete initial;
   initial = NULL;
-  connected = false;
   timer->stop();
 }
