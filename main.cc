@@ -4,6 +4,7 @@
 #include <Origin.hh>
 #include <OriginList.hh>
 #include <Peer.hh>
+#include <PeerList.hh>
 // #include <ChatDialog.hh>
 // #include <ChatQTextEdit.hh>
 // #include <NetSocket.hh>
@@ -28,7 +29,6 @@ int main(int argc, char **argv)
   &sock, SLOT(localMessage(QString)));
   QObject::connect(&sock, SIGNAL(chatMessage(QString)),
   &dialog, SLOT(postMessage(QString)));
-
   */
 
   // test origin
@@ -39,9 +39,11 @@ int main(int argc, char **argv)
   Origin b("other");
   b.addMessage(2, "i is");
   b.addMessage(3, "swag");
+  a.addMessage(1, "hi");
 
   // test origin list
   OriginList hello;
+  /*
   hello.add("harro");
   // test messages are added
   if(hello.addMessage(a.message(1))) {
@@ -85,6 +87,22 @@ int main(int argc, char **argv)
   bud.makeConnection(a.message(1));
   qDebug() << bud.isConnected();
   bud.wait();
+
+  */
+
+  PeerList peers;
+  peers.setMe(QHostAddress::LocalHost, 4000);
+  qDebug() << peers.myHost() << peers.myPort() << peers.myName() << peers.mySeqNo();
+  // message
+  QVariantMap selfMsg;
+  selfMsg.insert("ChatText", QVariant("wassup"));
+  selfMsg.insert("Origin", QVariant(peers.myName()));
+  selfMsg.insert("SeqNo", QVariant(peers.mySeqNo()));
+  // peers.add(QHostAddress::LocalHost, 7777);
+  // peers.newMessage(QHostAddress::LocalHost, 9001, a.message(1));
+  peers.newMessage(QHostAddress::LocalHost, 4000, selfMsg);
+  // status message
+  peers.newMessage(QHostAddress::LocalHost, 9001, hello.status());
 
   // Enter the Qt main loop; everything else is event driven
   return app.exec();  

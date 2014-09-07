@@ -51,10 +51,8 @@ bool Peer::isConnected() {
 }
 
 void Peer::endConnection() {
-  qDebug() << "ending connection";
   // keep rumormongering with 50% chance
   if(initial != NULL && qrand() % 2 == 0) {
-    qDebug() << *initial;
     emit rumor(*initial);
   }
 

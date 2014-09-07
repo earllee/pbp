@@ -3,7 +3,9 @@
 
 #include <QObject>
 #include <QHostAddress>
+#include <QVector>
 #include <Peer.hh>
+#include <OriginList.hh>
 
 class PeerList : public QObject
 {
@@ -11,7 +13,7 @@ class PeerList : public QObject
 
 private:
   Peer *me;
-  QVector<*Peer> *peers;
+  QVector<Peer*> *peers;
   OriginList *origins;
   Peer *get(QHostAddress, quint16);
 public:
@@ -22,7 +24,7 @@ public:
   void setMe(QHostAddress, quint16);
   QHostAddress myHost();
   quint16 myPort();
-  QString myOrigin();
+  QString myName();
   quint32 mySeqNo();
 public slots:
   void rumor(QVariantMap);
