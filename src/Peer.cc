@@ -3,12 +3,13 @@
 #include <Peer.hh>
 #include <QHostAddress>
 #include <QVariant>
+#include <QVector>
 #include <QTimer>
 
 Peer::Peer(QHostAddress h, quint16 p) {
   host = new QHostAddress(h);
   port = p;
-  initial = NULL;
+  rumors = new QVector<QVariantMap>;
   timer = new QTimer(this);
   timer->setInterval(1000);
   timer->setSingleShot(true);
@@ -27,7 +28,7 @@ void Peer::makeConnection() {
 
 void Peer::makeConnection(QVariantMap msg) {
   makeConnection();
-  initial = new QVariantMap(msg);
+  rumors->append(msg);
 }
 
 void Peer::wait() {
@@ -43,12 +44,11 @@ quint16 Peer::getPort() {
 }
 
 void Peer::endConnection() {
-  // keep rumormongering with 50% chance
-  if(initial != NULL && qrand() % 2 == 0) {
-    emit rumor(*initial);
+  foreach(QVariantMap msg, *rumors) {
+    // keep rumormongering with 50% chance
+    if (qrand() % 2)
+      rumor(msg);
   }
-
-  delete initial;
-  initial = NULL;
+  rumors->clear();
   timer->stop();
 }

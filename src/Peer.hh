@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QHostAddress>
 #include <QVariant>
+#include <QVector>
 #include <QTimer>
 
 class Peer : public QObject {
@@ -12,7 +13,7 @@ class Peer : public QObject {
 private:
   QHostAddress *host;
   quint16 port;
-  QVariantMap *initial;
+  QVector<QVariantMap> *rumors;
   QTimer *timer;
 public:
   Peer(QHostAddress, quint16);

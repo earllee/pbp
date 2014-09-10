@@ -62,13 +62,14 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
 
   bool isStatus = datagram.value("Want").isValid();
   if(isStatus) {
-    if(origins->needMessage(datagram)) {
-      emit sendMessage(host, port, origins->status());
-    }
-
     QVariantMap message = origins->nextNeededMessage(datagram);
     if(message.empty()) {
-      sender->endConnection();
+      // send status back if there are messages missing
+      if(origins->needMessage(datagram)) {
+	emit sendMessage(host, port, origins->status());
+      } else {
+	sender->endConnection();
+      }
     } else {
       emit sendMessage(host, port, message);
     }
