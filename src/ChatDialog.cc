@@ -70,6 +70,7 @@ void ChatDialog::postMessage(QString name, QString msg, QColor color) {
   textview->append(QString("[%1] ").arg(name));
   textview->setFontWeight(QFont::Normal);
   textview->insertPlainText(msg);
+  textview->moveCursor(QTextCursor::End);
 }
 
 void ChatDialog::newPeer() {

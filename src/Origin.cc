@@ -8,7 +8,7 @@
 Origin::Origin(QString n) {
   name = n;
   seqNo = 1;
-  color.setHsv(qrand() % 360, qrand() % 255, (qrand() % 128) + 64);
+  color.setHsv(qrand() % 360, 128 + qrand() % 128, (qrand() % 128) + 64);
   messages = new QVector<QVariantMap>();
 }
 
