@@ -21,7 +21,9 @@ private:
 public:
   PeerList();
   ~PeerList();
+  Peer *add(QHostAddress, QString, quint16);
   Peer *add(QHostAddress, quint16);
+  Peer *add(QString, quint16);
   void newMessage(QHostAddress, quint16, QVariantMap);
   void setMe(QHostAddress, quint16);
   QHostAddress myHost();

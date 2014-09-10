@@ -6,8 +6,9 @@
 #include <QVector>
 #include <QTimer>
 
-Peer::Peer(QHostAddress h, quint16 p) {
+Peer::Peer(QHostAddress h, QString d, quint16 p) {
   host = new QHostAddress(h);
+  domain = d;
   port = p;
   rumors = new QVector<QVariantMap>;
   timer = new QTimer(this);

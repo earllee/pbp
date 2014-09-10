@@ -30,7 +30,6 @@ bool NetSocket::bind() {
   // Try to bind to each of the range myPortMin..myPortMax in turn.
   for (int p = myPortMin; p <= myPortMax; p++) {
     if (QUdpSocket::bind(p)) {
-      qDebug() << "bound to UDP port " << p;
       peers = new PeerList();
       connect(peers, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	      this, SLOT(sendMessage(QHostAddress, quint16, QVariantMap)));
@@ -67,15 +66,8 @@ void NetSocket::addPeer(QString text) {
       QHostAddress host(hostString);
       if(!host.isNull()) {
 	peers->add(host, port);
-	qDebug() << "Peer added" << text;
       } else {
-	QHostInfo info = QHostInfo::fromName(hostString);
-	if(info.addresses().empty()) {
-	  qDebug() << "Invalid host" << text;
-	} else {
-	  peers->add(info.addresses().first(), port);
-	  qDebug() << "Peer added" << text;
-	}
+	peers->add(hostString, port);
       }
     }
   }
@@ -95,20 +87,22 @@ void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagra
   stream << datagram;
 
   writeDatagram(buffer, host, port);
+  qDebug() << QString("Sent message to %1:%2").arg(host.toString()).arg(port) << datagram;
 }
 
 void NetSocket::receiveMessage() {
   while(hasPendingDatagrams()) {
     QByteArray data;
     data.resize(pendingDatagramSize());
-    QHostAddress senderAddress;
-    quint16 senderPort;
-    readDatagram(data.data(), data.size(), &senderAddress, &senderPort);
+    QHostAddress host;
+    quint16 port;
+    readDatagram(data.data(), data.size(), &host, &port);
     QDataStream stream(&data, QIODevice::ReadOnly);
     QVariantMap datagram;
     stream >> datagram;
-    
-    peers->newMessage(senderAddress, senderPort, datagram);
+
+    qDebug() << QString("Received message from %1:%2").arg(host.toString()).arg(port) << datagram;
+    peers->newMessage(host, port, datagram);
   }
 }
 

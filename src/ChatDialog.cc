@@ -22,7 +22,7 @@ ChatDialog::ChatDialog() {
   textline->installEventFilter(textline);
 
   peerInput = new QLineEdit(this);
-	
+  peerInput->setPlaceholderText("Add a peer");
 
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:

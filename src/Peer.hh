@@ -13,10 +13,11 @@ class Peer : public QObject {
 private:
   QHostAddress *host;
   quint16 port;
+  QString domain;
   QVector<QVariantMap> *rumors;
   QTimer *timer;
 public:
-  Peer(QHostAddress, quint16);
+  Peer(QHostAddress, QString, quint16);
   ~Peer();
   void makeConnection();
   void makeConnection(QVariantMap);
