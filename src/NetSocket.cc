@@ -3,6 +3,7 @@
 #include <NetSocket.hh>
 #include <QUdpSocket>
 #include <QDebug>
+#include <QColor>
 #include <QVariant>
 #include <PeerList.hh>
 #include <QByteArray>
@@ -39,8 +40,8 @@ bool NetSocket::bind() {
 	  peers->add(QHostAddress::LocalHost, port);
 	}
       }
-      connect(peers, SIGNAL(postMessage(QString)),
-	      this, SLOT(relayMessage(QString)));
+      connect(peers, SIGNAL(postMessage(QString, QString, QColor)),
+	      this, SLOT(relayMessage(QString, QString, QColor)));
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       return true;
@@ -106,6 +107,6 @@ void NetSocket::receiveMessage() {
   }
 }
 
-void NetSocket::relayMessage(QString msg) {
-  emit postMessage(msg);
+void NetSocket::relayMessage(QString name, QString msg, QColor color) {
+  emit postMessage(name, msg, color);
 }

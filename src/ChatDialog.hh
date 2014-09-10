@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QTextEdit>
 #include <QLineEdit>
+#include <QColor>
 #include <ChatQTextEdit.hh>
 
 class ChatDialog : public QDialog {
@@ -15,7 +16,7 @@ public:
 
 public slots:
   void gotReturnPressed();
-  void postMessage(QString);
+  void postMessage(QString, QString, QColor);
   void newPeer();
 signals:
   void newMessage(QString);

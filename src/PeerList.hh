@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QHostAddress>
 #include <QTimer>
+#include <QColor>
 #include <Peer.hh>
 #include <OriginList.hh>
 
@@ -32,11 +33,11 @@ public:
 public slots:
   void rumor(QVariantMap);
   void sentMessage(QHostAddress, quint16, QVariantMap);
-  void relayMessage(QString);
+  void relayMessage(QString, QString, QColor);
   void antiEntropy();
 signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
-  void postMessage(QString);
+  void postMessage(QString, QString, QColor);
 };
 
 #endif

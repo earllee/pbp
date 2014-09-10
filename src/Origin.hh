@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QVariant>
+#include <QColor>
 
 class Origin : public QObject {
   Q_OBJECT
@@ -10,6 +11,7 @@ class Origin : public QObject {
 private:
   QString name;
   quint32 seqNo;
+  QColor color;
   QVector<QVariantMap> *messages;
 public:
   Origin(QString);
@@ -19,7 +21,7 @@ public:
   QVariantMap message(quint32);
   bool addMessage(quint32, QVariantMap);
 signals:
-  void postMessage(QString);
+  void postMessage(QString, QString, QColor);
 };
 
 #endif

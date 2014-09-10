@@ -8,6 +8,7 @@
 Origin::Origin(QString n) {
   name = n;
   seqNo = 1;
+  color.setHsv(qrand() % 360, qrand() % 255, (qrand() % 128) + 64);
   messages = new QVector<QVariantMap>();
 }
 
@@ -40,8 +41,7 @@ bool Origin::addMessage(quint32 sn, QVariantMap datagram) {
       // first)
       for(; !messages->value(seqNo - 1).empty(); seqNo++) {
 	// emit all messages that were waiting
-	QString msg = QString("%1: %2").arg(name).arg(messages->value(seqNo-1).value("ChatText").toString());
-	emit postMessage(msg);
+	emit postMessage(name, messages->value(seqNo-1).value("ChatText").toString(), color);
       }
     }
     return true;

@@ -1,6 +1,8 @@
 #include <unistd.h>
 
 #include <ChatDialog.hh>
+#include <QColor>
+#include <QFont>
 #include <QVBoxLayout>
 
 ChatDialog::ChatDialog() {
@@ -62,8 +64,12 @@ void ChatDialog::gotReturnPressed() {
   }
 }
 
-void ChatDialog::postMessage(QString text) {
-  textview->append(text);
+void ChatDialog::postMessage(QString name, QString msg, QColor color) {
+  textview->setTextColor(color);
+  textview->setFontWeight(QFont::Bold);
+  textview->append(QString("[%1] ").arg(name));
+  textview->setFontWeight(QFont::Normal);
+  textview->insertPlainText(msg);
 }
 
 void ChatDialog::newPeer() {

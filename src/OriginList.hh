@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QVariant>
+#include <QColor>
 #include <Origin.hh>
 
 class OriginList : public QObject {
@@ -23,9 +24,9 @@ public:
   QString myName();
   Origin *add(QString);
 public slots:
-  void relayMessage(QString);
+  void relayMessage(QString, QString, QColor);
 signals:
-  void postMessage(QString);
+  void postMessage(QString, QString, QColor);
 };
 
 #endif

@@ -2,6 +2,7 @@
 #define NETSOCKET_HH
 
 #include <QUdpSocket>
+#include <QColor>
 #include <PeerList.hh>
 
 class NetSocket : public QUdpSocket {
@@ -21,10 +22,10 @@ public slots:
   void localMessage(QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
-  void relayMessage(QString);
+  void relayMessage(QString, QString, QColor);
   void addPeer(QString);
 signals:
-  void postMessage(QString);
+  void postMessage(QString, QString, QColor);
 };
 
 #endif

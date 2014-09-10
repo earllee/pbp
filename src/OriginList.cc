@@ -4,12 +4,13 @@
 #include <Origin.hh>
 #include <QVariant>
 #include <QTime>
+#include <QColor>
 
 OriginList::OriginList() {
   qsrand(QTime::currentTime().msec());
   me = new Origin(QString("yoloswag%1").arg(qrand()));
-  connect(me, SIGNAL(postMessage(QString)),
-	  this, SLOT(relayMessage(QString)));
+  connect(me, SIGNAL(postMessage(QString, QString, QColor)),
+	  this, SLOT(relayMessage(QString, QString, QColor)));
   origins = new QMap<QString, Origin*>();
 }
 
@@ -30,8 +31,8 @@ Origin *OriginList::get(QString name) {
 
 Origin *OriginList::add(QString name) {
   Origin *newOrigin = new Origin(name);
-  connect(newOrigin, SIGNAL(postMessage(QString)),
-	  this, SLOT(relayMessage(QString)));
+  connect(newOrigin, SIGNAL(postMessage(QString, QString, QColor)),
+	  this, SLOT(relayMessage(QString, QString, QColor)));
   origins->insert(name, newOrigin);
   return newOrigin;
 }
@@ -97,6 +98,6 @@ quint32 OriginList::mySeqNo() {
   return me->next();
 }
 
-void OriginList::relayMessage(QString msg) {
-  emit postMessage(msg);
+void OriginList::relayMessage(QString name, QString msg, QColor color) {
+  emit postMessage(name, msg, color);
 }

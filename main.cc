@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
 
   QObject::connect(&dialog, SIGNAL(newMessage(QString)),
 		   &sock, SLOT(localMessage(QString)));
-  QObject::connect(&sock, SIGNAL(postMessage(QString)),
-		   &dialog, SLOT(postMessage(QString)));
+  QObject::connect(&sock, SIGNAL(postMessage(QString, QString, QColor)),
+		   &dialog, SLOT(postMessage(QString, QString, QColor)));
   QObject::connect(&dialog, SIGNAL(addPeer(QString)),
 		   &sock, SLOT(addPeer(QString)));
 
