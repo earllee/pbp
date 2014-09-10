@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QHostAddress>
-#include <QVector>
 #include <QTimer>
 #include <Peer.hh>
 #include <OriginList.hh>
@@ -13,7 +12,7 @@ class PeerList : public QObject {
 
 private:
   Peer *me;
-  QVector<Peer*> *peers;
+  QMap<QString, Peer*> *peers;
   OriginList *origins;
   QTimer *entropyTimer;
   Peer *get(QHostAddress, quint16);

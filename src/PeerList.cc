@@ -1,7 +1,6 @@
 #include <unistd.h>
 
 #include <QHostAddress>
-#include <QVector>
 #include <QTimer>
 #include <QDebug>
 #include <QHostInfo>
@@ -10,7 +9,7 @@
 #include <PeerList.hh>
 
 PeerList::PeerList() {
-  peers = new QVector<Peer*>();
+  peers = new QMap<QString, Peer*>();
   connect(this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SLOT(sentMessage(QHostAddress, quint16, QVariantMap)));
   origins = new OriginList();
@@ -24,7 +23,7 @@ PeerList::PeerList() {
 }
 
 PeerList::~PeerList() {
-  foreach(Peer *p, *peers) {
+  foreach(Peer *p, peers->values()) {
     delete p;
   }
   delete peers;
@@ -34,7 +33,7 @@ PeerList::~PeerList() {
 
 Peer *PeerList::add(QHostAddress host, QString domain, quint16 port) {
   Peer *newPeer = new Peer(host, domain, port);
-  peers->append(newPeer);
+  peers->insert(QString("%1:%2").arg(host.toString()).arg(port), newPeer);
   connect(newPeer, SIGNAL(rumor(QVariantMap)),
 	  this, SLOT(rumor(QVariantMap)));
   qDebug() << QString("Peer added %1:%2 (%3)").arg(host.toString()).arg(port).arg(domain);
@@ -61,12 +60,7 @@ Peer *PeerList::add(QString domain, quint16 port) {
 }
 
 Peer *PeerList::get(QHostAddress host, quint16 port) {
-  foreach(Peer *p, *peers) {
-    if(p->getHost() == host && p->getPort() == port) {
-      return p;
-    }
-  }
-  return NULL;
+  return peers->value(QString("%1:%2").arg(host.toString()).arg(port));
 }
 
 void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram) {
@@ -134,9 +128,10 @@ quint32 PeerList::mySeqNo() {
 }
 
 Peer *PeerList::random() {
-  int nPeers = peers->size();
+  QList<Peer*> values = peers->values();
+  int nPeers = values.size();
   if(nPeers > 0) {
-    return peers->value(qrand() % nPeers);
+    return values.value(qrand() % nPeers);
   } else {
     return NULL;
   }
