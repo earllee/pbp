@@ -2,7 +2,6 @@
 
 #include <OriginList.hh>
 #include <Origin.hh>
-#include <QVector>
 #include <QVariant>
 #include <QTime>
 
@@ -11,11 +10,11 @@ OriginList::OriginList() {
   me = new Origin(QString("yoloswag%1").arg(qrand()));
   connect(me, SIGNAL(postMessage(QString)),
 	  this, SLOT(relayMessage(QString)));
-  origins = new QVector<Origin*>();
+  origins = new QMap<QString, Origin*>();
 }
 
 OriginList::~OriginList() {
-  foreach(Origin *o, *origins) {
+  foreach(Origin *o, origins->values()) {
     delete o;
   }
   delete origins;
@@ -26,19 +25,14 @@ Origin *OriginList::get(QString name) {
   if(name == myName()) {
     return me;
   }
-  foreach(Origin *o, *origins) {
-    if(o->getName() == name) {
-      return o;
-    }
-  }
- return NULL;
+  return origins->value(name);
 }
 
 Origin *OriginList::add(QString name) {
   Origin *newOrigin = new Origin(name);
   connect(newOrigin, SIGNAL(postMessage(QString)),
 	  this, SLOT(relayMessage(QString)));
-  origins->append(newOrigin);
+  origins->insert(name, newOrigin);
   return newOrigin;
 }
 
@@ -87,7 +81,7 @@ bool OriginList::addMessage(QVariantMap message) {
 QVariantMap OriginList::status() {
   QVariantMap status;
   status.insert(myName(), mySeqNo());
-  foreach(Origin *o, *origins) {
+  foreach(Origin *o, origins->values()) {
     status.insert(o->getName(), QVariant(o->next()));
   }
   QVariantMap want;
