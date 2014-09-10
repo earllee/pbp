@@ -81,7 +81,7 @@ bool OriginList::addMessage(QVariantMap message) {
   if(o == NULL) {
     o = add(name);
   }
-  return o->addMessage(message.value("SeqNo").toUInt(), message.value("ChatText").toString());
+  return o->addMessage(message.value("SeqNo").toUInt(), message);
 }
 
 QVariantMap OriginList::status() {

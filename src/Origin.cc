@@ -8,7 +8,7 @@
 Origin::Origin(QString n) {
   name = n;
   seqNo = 1;
-  messages = new QVector<QString>();
+  messages = new QVector<QVariantMap>();
 }
 
 Origin::~Origin() {
@@ -24,27 +24,23 @@ quint32 Origin::next() {
 }
 
 QVariantMap Origin::message(quint32 sn) {
-  QVariantMap datagram;
-  datagram.insert("ChatText", QVariant(messages->value(sn - 1)));
-  datagram.insert("Origin", QVariant(name));
-  datagram.insert("SeqNo", QVariant(sn));
-  return datagram;
+  return messages->value(sn - 1);
 }
 
-bool Origin::addMessage(quint32 sn, QString text) {
+bool Origin::addMessage(quint32 sn, QVariantMap datagram) {
   if((int)sn > messages->size()) {
     messages->resize(sn);
   }
-  if(messages->value(sn - 1) == "" && sn >= seqNo) {
+  if(messages->value(sn - 1).empty() && sn >= seqNo) {
     // set the new message if it doesn't already exist
-    messages->replace(sn - 1, text);
+    messages->replace(sn - 1, datagram);
     if(sn == seqNo) {
       // if the seqNo is the one that is needed then increment need until
       // the first missing message (in case later messages were received
       // first)
-      for(; messages->value(seqNo - 1) != ""; seqNo++) {
+      for(; !messages->value(seqNo - 1).empty(); seqNo++) {
 	// emit all messages that were waiting
-	QString msg = QString("%1: %2").arg(name).arg(messages->value(seqNo-1));
+	QString msg = QString("%1: %2").arg(name).arg(messages->value(seqNo-1).value("ChatText").toString());
 	emit postMessage(msg);
       }
     }

@@ -10,14 +10,14 @@ class Origin : public QObject {
 private:
   QString name;
   quint32 seqNo;
-  QVector<QString> *messages;
+  QVector<QVariantMap> *messages;
 public:
   Origin(QString);
   ~Origin();
   QString getName();
   quint32 next();
   QVariantMap message(quint32);
-  bool addMessage(quint32, QString);
+  bool addMessage(quint32, QVariantMap);
 signals:
   void postMessage(QString);
 };
