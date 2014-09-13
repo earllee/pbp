@@ -63,9 +63,12 @@ bool OriginList::needMessage(QVariantMap want) {
 
 QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
   QVariantMap status = want.value("Want").toMap();
-  foreach(Origin *o, *origins) {
-    QVariant v = status.value(o->getName());
-    quint32 needed;
+  QMap<QString, Origin*> allOrigins(*origins);
+  allOrigins.insert(myName(), me);
+  QVariant v;
+  quint32 needed;
+  foreach(Origin *o, allOrigins) {
+    v = status.value(o->getName());
     if (v.isValid())
       needed = v.toUInt();
     else
