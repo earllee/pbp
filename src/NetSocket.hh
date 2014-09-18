@@ -18,12 +18,14 @@ private:
   int myPortMin, myPortMax;
   PeerList *peers;
   QString stringify(QVariantMap);
+  QTimer *routeTimer;
 public slots:
   void localMessage(QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
   void relayMessage(QString, QString, QColor);
   void addPeer(QString);
+  void routeRumor();
 signals:
   void postMessage(QString, QString, QColor);
 };
