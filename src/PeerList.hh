@@ -19,12 +19,13 @@ private:
   Peer *get(QHostAddress, quint16);
   Peer *random();
 public:
-  PeerList();
+  PeerList(quint16);
   ~PeerList();
   Peer *add(QHostAddress, QString, quint16);
   Peer *add(QHostAddress, quint16);
   Peer *add(QString, quint16);
   void newMessage(QHostAddress, quint16, QVariantMap);
+  Peer *getMe();
   void setMe(QHostAddress, quint16);
   QHostAddress myHost();
   quint16 myPort();

@@ -9,13 +9,25 @@
 #include <Peer.hh>
 #include <PeerList.hh>
 
-PeerList::PeerList() {
+PeerList::PeerList(quint16 port) {
   peers = new QMap<QString, Peer*>();
   connect(this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SLOT(sentMessage(QHostAddress, quint16, QVariantMap)));
-  origins = new OriginList();
+
+  QHostAddress host = QHostAddress::LocalHost;
+  QHostInfo info = QHostInfo::fromName(host.toString());
+  if (info.error() == QHostInfo::NoError) {
+    me = new Peer(host, "<unknown>", port);
+    qDebug() << QString("I am %1:%2 (%3)").arg(host.toString()).arg(port).arg("<unknown>");
+  } else {
+    me = new Peer(host, info.hostName(), port);
+    qDebug() << QString("I am %1:%2 (%3)").arg(host.toString()).arg(port).arg(info.hostName());
+  }
+
+  origins = new OriginList(me);
   connect(origins, SIGNAL(postMessage(QString, QString, QColor)),
 	  this, SLOT(relayMessage(QString, QString, QColor)));
+
   entropyTimer = new QTimer(this);
   entropyTimer->setInterval(10000);
   connect(entropyTimer, SIGNAL(timeout()),
@@ -91,24 +103,13 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
       emit sendMessage(host, port, message);
     }
   } else {
-    bool isHot = origins->addMessage(datagram);
+    bool isHot = origins->addMessage(datagram, sender);
     if(isHot) {
       rumor(datagram);
     }
     if(!isMe) {
       emit sendMessage(host, port, origins->status());
     }
-  }
-}
-
-void PeerList::setMe(QHostAddress host, quint16 port) {
-  QHostInfo info = QHostInfo::fromName(host.toString());
-  if (info.error() == QHostInfo::NoError) {
-    me = new Peer(host, "<unknown>", port);
-    qDebug() << QString("I am %1:%2 (%3)").arg(host.toString()).arg(port).arg("<unknown>");
-  } else {
-    me = new Peer(host, info.hostName(), port);
-    qDebug() << QString("I am %1:%2 (%3)").arg(host.toString()).arg(port).arg(info.hostName());
   }
 }
 

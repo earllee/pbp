@@ -12,9 +12,9 @@ QVector<QString> POKEMON = QVector<QString>() << "Bulbasaur" << "Ivysaur" << "Ve
 
 QVector<QString> PERSONALITIES = QVector<QString>() << "Hardy" << "Lonely" << "Brave" << "Adamant" << "Naughty" << "Bold" << "Docile" << "Relaxed" << "Impish" << "Lax" << "Timid" << "Hasty" << "Serious" << "Jolly" << "Naive" << "Modest" << "Mild" << "Quiet" << "Bashful" << "Rash" << "Calm" << "Gentle" << "Sassy" << "Careful" << "Quirky";
 
-OriginList::OriginList() {
+OriginList::OriginList(Peer *myPeer) {
   qsrand(QTime::currentTime().msec());
-  me = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100));
+  me = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100), myPeer);
   connect(me, SIGNAL(postMessage(QString, QString, QColor)),
 	  this, SLOT(relayMessage(QString, QString, QColor)));
   origins = new QMap<QString, Origin*>();
@@ -35,8 +35,8 @@ Origin *OriginList::get(QString name) {
   return origins->value(name);
 }
 
-Origin *OriginList::add(QString name) {
-  Origin *newOrigin = new Origin(name);
+Origin *OriginList::add(QString name, Peer *sender) {
+  Origin *newOrigin = new Origin(name, sender);
   connect(newOrigin, SIGNAL(postMessage(QString, QString, QColor)),
 	  this, SLOT(relayMessage(QString, QString, QColor)));
   origins->insert(name, newOrigin);
@@ -50,7 +50,6 @@ bool OriginList::needMessage(QVariantMap want) {
   foreach(QString name, status.keys()) {
     o = get(name);
     if(o == NULL) {
-      add(name);
       need = true;
     } else {
       if(status.value(name).toUInt() - 1 >= o->next()) {
@@ -80,13 +79,13 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
   return QVariantMap();
 }
 
-bool OriginList::addMessage(QVariantMap message) {
+bool OriginList::addMessage(QVariantMap message, Peer *sender) {
   QString name = message.value("Origin").toString();
   Origin *o = get(name);
   if(o == NULL) {
-    o = add(name);
+    o = add(name, sender);
   }
-  return o->addMessage(message.value("SeqNo").toUInt(), message);
+  return o->addMessage(message.value("SeqNo").toUInt(), message, sender);
 }
 
 QVariantMap OriginList::status() {
