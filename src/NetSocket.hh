@@ -17,7 +17,7 @@ public:
 private:
   int myPortMin, myPortMax;
   PeerList *peers;
-
+  QString stringify(QVariantMap);
 public slots:
   void localMessage(QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);

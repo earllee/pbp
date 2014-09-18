@@ -87,7 +87,7 @@ void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagra
   stream << datagram;
 
   writeDatagram(buffer, host, port);
-  qDebug() << QString("Sent message to %1:%2").arg(host.toString()).arg(port) << datagram;
+  qDebug() << QString("[SENT %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
 }
 
 void NetSocket::receiveMessage() {
@@ -101,11 +101,28 @@ void NetSocket::receiveMessage() {
     QVariantMap datagram;
     stream >> datagram;
 
-    qDebug() << QString("Received message from %1:%2").arg(host.toString()).arg(port) << datagram;
+    qDebug() << QString("[RECEIVED %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
     peers->newMessage(host, port, datagram);
   }
 }
 
 void NetSocket::relayMessage(QString name, QString msg, QColor color) {
   emit postMessage(name, msg, color);
+}
+
+QString NetSocket::stringify(QVariantMap datagram) {
+  QString str;
+  if(datagram.contains("Want")) {
+    str.append("Status -> ");
+    QVariantMap status = datagram.value("Want").toMap();
+    foreach(QString origin, status.keys()) {
+      str.append(QString("%1 (%2), ").arg(origin).arg(status.value(origin).toUInt()));
+    }
+    str = str.left(str.size() - 2);
+  } else if(datagram.contains("ChatText")) {
+    str.append(QString("Rumor -> %1 (%2) %3").arg(datagram.value("Origin").toString()).arg(datagram.value("SeqNo").toUInt()).arg(datagram.value("ChatText").toString()));
+  } else {
+    str.append(QString("Routing -> %1 (%2)").arg(datagram.value("Origin").toString()).arg(datagram.value("SeqNo").toUInt()));
+  }
+  return str;
 }
