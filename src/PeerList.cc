@@ -151,8 +151,10 @@ void PeerList::handleRumor(QVariantMap datagram, Peer *sender) {
     // is rumor
     if(origins->addMessage(datagram, last, direct)) {
       // add message returns whether or not the message is new (i.e., hot)
-      datagram.insert("LastIP", QVariant(sender->getHost().toString()));
-      datagram.insert("LastPort", QVariant(sender->getPort()));
+      if(sender != me) {
+	datagram.insert("LastIP", QVariant(sender->getHost().toString()));
+	datagram.insert("LastPort", QVariant(sender->getPort()));
+      }
       // broadcast to everyone if it's a routing message
       rumor(datagram, !datagram.contains("ChatText"));
     }
