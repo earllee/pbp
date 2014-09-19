@@ -19,15 +19,16 @@ private:
   PeerList *peers;
   QString stringify(QVariantMap);
   QTimer *routeTimer;
+  const quint32 HOPLIMIT;
 public slots:
-  void localMessage(QString);
+  void localMessage(QString, QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
-  void relayMessage(QString, QString, QColor);
   void addPeer(QString);
   void routeRumor();
 signals:
-  void postMessage(QString, QString, QColor);
+  void postMessage(QString, QString, QColor, QString);
+  void newOrigin(QString);
 };
 
 #endif

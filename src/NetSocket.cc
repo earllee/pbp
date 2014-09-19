@@ -11,7 +11,7 @@
 #include <QDataStream>
 #include <QHostInfo>
 
-NetSocket::NetSocket() {
+NetSocket::NetSocket() : HOPLIMIT(10) {
   // Pick a range of four UDP ports to try to allocate by default,
   // computed based on my Unix user ID.
   // This makes it trivial for up to four Peerster instances per user
@@ -43,8 +43,10 @@ bool NetSocket::bind() {
 	  peers->add(QHostAddress::LocalHost, port);
 	}
       }
-      connect(peers, SIGNAL(postMessage(QString, QString, QColor)),
-	      this, SLOT(relayMessage(QString, QString, QColor)));
+      connect(peers, SIGNAL(postMessage(QString, QString, QColor, QString)),
+	      this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+      connect(peers, SIGNAL(newOrigin(QString)),
+	      this, SIGNAL(newOrigin(QString)));
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       routeRumor(); // initially notify peers
@@ -79,11 +81,16 @@ void NetSocket::addPeer(QString text) {
   }
 }
 
-void NetSocket::localMessage(QString text) {
+void NetSocket::localMessage(QString text, QString dest) {
   QVariantMap datagram;
-  datagram.insert("ChatText", QVariant(text));
   datagram.insert("Origin", QVariant(peers->myName()));
-  datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
+  datagram.insert("ChatText", QVariant(text));
+  if(dest.isEmpty()) {
+    datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
+  } else {
+    datagram.insert("Dest", QVariant(dest));
+    datagram.insert("HopLimit", QVariant(HOPLIMIT));
+  }
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -119,10 +126,6 @@ void NetSocket::receiveMessage() {
   }
 }
 
-void NetSocket::relayMessage(QString name, QString msg, QColor color) {
-  emit postMessage(name, msg, color);
-}
-
 QString NetSocket::stringify(QVariantMap datagram) {
   QString str;
   if(datagram.contains("Want")) {
@@ -132,8 +135,11 @@ QString NetSocket::stringify(QVariantMap datagram) {
       str.append(QString("%1 (%2), ").arg(origin).arg(status.value(origin).toUInt()));
     }
     str = str.left(str.size() - 2);
+  } else if(datagram.contains("Dest")) {
+    str.append("Private -> ");
+    str.append(QString("%1 to %2 (HopLimit: %3) %4").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()).arg(datagram.value("HopLimit").toUInt()).arg(datagram.value("ChatText").toString()));
   } else if(datagram.contains("ChatText")) {
-    str.append(QString("Rumor -> %1 (%2) %3").arg(datagram.value("Origin").toString()).arg(datagram.value("SeqNo").toUInt()).arg(datagram.value("ChatText").toString()));
+    str.append(QString("Rumor -> %1 (SeqNo: %2) %3").arg(datagram.value("Origin").toString()).arg(datagram.value("SeqNo").toUInt()).arg(datagram.value("ChatText").toString()));
   } else {
     str.append(QString("Routing -> %1 (%2)").arg(datagram.value("Origin").toString()).arg(datagram.value("SeqNo").toUInt()));
   }

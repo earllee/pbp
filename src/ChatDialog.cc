@@ -1,80 +1,93 @@
 #include <unistd.h>
 
 #include <ChatDialog.hh>
+#include <ChatTab.hh>
 #include <QColor>
 #include <QFont>
+#include <QGroupBox>
 #include <QVBoxLayout>
+#include <QGridLayout>
+#include <QDebug>
 
 ChatDialog::ChatDialog() {
   setWindowTitle("Peerster");
 
-  // Read-only text box where we display messages from everyone.
-  // This widget expands both horizontally and vertically.
-  textview = new QTextEdit(this);
-  textview->setReadOnly(true);
-
-  // Small text-entry box the user can enter messages.
-  // This widget normally expands only horizontally,
-  // leaving extra vertical space for the textview widget.
-  //
-  // You might change this into a read/write QTextEdit,
-  // so that the user can easily enter multi-line messages.
-  textline = new ChatQTextEdit(this);
-  textline->setMaximumHeight(3 * textline->font().pointSize() + 32);
-  textline->installEventFilter(textline);
+  chats = new QMap<QString, ChatTab*>();
 
   peerInput = new QLineEdit(this);
   peerInput->setPlaceholderText("Add a peer");
 
+  originSelect = new QListWidget(this);
+  connect(originSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+	  this, SLOT(openTab(QListWidgetItem*)));
+
+  tabs = new QTabWidget(this);
+
+  broadcast = new ChatTab("");
+  tabs->addTab(broadcast, "Broadcast");
+  connect(broadcast, SIGNAL(newMessage(QString, QString)),
+	  this, SIGNAL(newMessage(QString, QString)));
+  
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
-  QVBoxLayout *layout = new QVBoxLayout();
-  layout->addWidget(textview);
-  layout->addWidget(textline);
-  layout->addWidget(peerInput);
-  setLayout(layout);
-
-  // set focus on text input
-  textline->setFocus();
-
-
-  // Register a callback on the textline's returnPressed signal
-  // so that we can send the message entered by the user.
-  connect(textline, SIGNAL(returnPressed()),
-	  this, SLOT(gotReturnPressed()));
+  QGridLayout *layout = new QGridLayout(this);
+  layout->addWidget(tabs, 0, 0, -1, 1);
+  layout->addWidget(originSelect, 0, 1);
+  layout->addWidget(peerInput, 1, 1);
 
   connect(peerInput, SIGNAL(returnPressed()),
 	  this, SLOT(newPeer()));
 }
 
 ChatDialog::~ChatDialog() {
-  delete textline;
-  delete textview;
-}
-
-void ChatDialog::gotReturnPressed() {
-  if(textline->toPlainText() != "") {
-    // Initially, just echo the string locally.
-    // Insert some networking code here...
-    emit newMessage(textline->toPlainText());
-
-    // Clear the textline to get ready for the next input message.
-    textline->clear();
+  delete peerInput;
+  delete originSelect;
+  delete broadcast;
+  foreach(ChatTab *c, chats->values()) {
+    delete c;
   }
+  delete chats;
 }
 
-void ChatDialog::postMessage(QString name, QString msg, QColor color) {
-  textview->setTextColor(color);
-  textview->setFontWeight(QFont::Bold);
-  textview->append(QString("[%1] ").arg(name));
-  textview->setFontWeight(QFont::Normal);
-  textview->insertPlainText(msg);
-  textview->moveCursor(QTextCursor::End);
+void ChatDialog::postMessage(QString name, QString msg, QColor color, QString dest) {
+  if(dest.isEmpty()) {
+    broadcast->postMessage(name, msg, color);
+  } else {
+    ChatTab *tab;
+    if(chats->contains(dest))
+      tab = chats->value(dest);
+    else
+      tab = newChatTab(dest);
+    tab->postMessage(name, msg, color);
+  }
 }
 
 void ChatDialog::newPeer() {
   QString peer = peerInput->text();
   peerInput->clear();
   emit addPeer(peer);
+}
+
+void ChatDialog::newOrigin(QString name) {
+  originSelect->addItem(name);
+}
+
+ChatTab *ChatDialog::newChatTab(QString name) {
+  ChatTab *tab = new ChatTab(name);
+  chats->insert(name, tab);
+  tabs->addTab(tab, name);
+  connect(tab, SIGNAL(newMessage(QString, QString)),
+	  this, SIGNAL(newMessage(QString, QString)));
+  return tab;
+}
+
+void ChatDialog::openTab(QListWidgetItem *item) {
+  ChatTab *tab;
+  QString name = item->text();
+  if(chats->contains(name))
+    tab = chats->value(name);
+  else
+    tab = newChatTab(name);
+  tabs->setCurrentWidget(tab);
 }

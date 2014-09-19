@@ -15,8 +15,8 @@ QVector<QString> PERSONALITIES = QVector<QString>() << "Hardy" << "Lonely" << "B
 OriginList::OriginList(Peer *myPeer) {
   qsrand(QTime::currentTime().msec());
   me = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100), myPeer);
-  connect(me, SIGNAL(postMessage(QString, QString, QColor)),
-	  this, SLOT(relayMessage(QString, QString, QColor)));
+  connect(me, SIGNAL(postMessage(QString, QString, QColor, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
   origins = new QMap<QString, Origin*>();
 }
 
@@ -36,11 +36,12 @@ Origin *OriginList::get(QString name) {
 }
 
 Origin *OriginList::add(QString name, Peer *sender) {
-  Origin *newOrigin = new Origin(name, sender);
-  connect(newOrigin, SIGNAL(postMessage(QString, QString, QColor)),
-	  this, SLOT(relayMessage(QString, QString, QColor)));
-  origins->insert(name, newOrigin);
-  return newOrigin;
+  Origin *o = new Origin(name, sender);
+  connect(o, SIGNAL(postMessage(QString, QString, QColor, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  origins->insert(name, o);
+  emit newOrigin(name);
+  return o;
 }
 
 bool OriginList::needMessage(QVariantMap want) {
@@ -49,7 +50,7 @@ bool OriginList::needMessage(QVariantMap want) {
   bool need = false;
   foreach(QString name, status.keys()) {
     o = get(name);
-    if(o == NULL) {
+    if(!o) {
       need = true;
     } else {
       if(status.value(name).toUInt() - 1 >= o->next()) {
@@ -82,7 +83,7 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
 bool OriginList::addMessage(QVariantMap message, Peer *sender) {
   QString name = message.value("Origin").toString();
   Origin *o = get(name);
-  if(o == NULL) {
+  if(!o) {
     o = add(name, sender);
   }
   return o->addMessage(message.value("SeqNo").toUInt(), message, sender);
@@ -107,6 +108,27 @@ quint32 OriginList::mySeqNo() {
   return me->next();
 }
 
-void OriginList::relayMessage(QString name, QString msg, QColor color) {
-  emit postMessage(name, msg, color);
+void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
+  QString from = datagram.value("Origin").toString();
+  Origin *o;
+  QString chatbox;
+  if(from == myName()) {
+    o = me;
+    chatbox = datagram.value("Dest").toString();
+  } else {
+    o = get(from);
+    if(!o)
+      o = add(from, sender);
+    chatbox = from;
+  }
+  o->privateMessage(datagram, chatbox);
+
+}
+
+Peer *OriginList::nextHop(QString dest) {
+  Origin *o = get(dest);
+  if(o)
+    return o->getHop();
+  else
+    return NULL;
 }

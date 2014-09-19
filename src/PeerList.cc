@@ -25,8 +25,10 @@ PeerList::PeerList(quint16 port) {
   }
 
   origins = new OriginList(me);
-  connect(origins, SIGNAL(postMessage(QString, QString, QColor)),
-	  this, SLOT(relayMessage(QString, QString, QColor)));
+  connect(origins, SIGNAL(postMessage(QString, QString, QColor, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  connect(origins, SIGNAL(newOrigin(QString)),
+	  this, SIGNAL(newOrigin(QString)));
 
   entropyTimer = new QTimer(this);
   entropyTimer->setInterval(10000);
@@ -89,8 +91,27 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
     sender->makeConnection();
   }
 
-  bool isStatus = datagram.value("Want").isValid();
-  if(isStatus) {
+  if(datagram.contains("Dest")) {
+    // is private
+    QString dest = datagram.value("Dest").toString();
+    QString origin = datagram.value("Origin").toString();
+    if(dest == myName()) {
+      origins->privateMessage(datagram, sender);
+    } else {
+      if(origin == myName()) {
+	origins->privateMessage(datagram, sender);
+      } else {
+	quint32 hopLimit = datagram.value("HopLimit").toUInt();
+	if(--hopLimit > 0)
+	  datagram.insert("HopLimit", hopLimit);
+      }
+      Peer *hop = origins->nextHop(dest);
+      if(hop)
+	emit sendMessage(hop->getHost(), hop->getPort(), datagram);
+    }
+    return;
+  } else if(datagram.contains("Want")) {
+    // is status
     QVariantMap message = origins->nextNeededMessage(datagram);
     if(message.empty()) {
       // send status back if there are messages missing
@@ -103,6 +124,7 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
       emit sendMessage(host, port, message);
     }
   } else {
+    // is rumor
     bool isHot = origins->addMessage(datagram, sender);
     if(isHot) {
       rumor(datagram);
@@ -158,8 +180,4 @@ void PeerList::antiEntropy() {
 void PeerList::sentMessage(QHostAddress host, quint16 port, QVariantMap datagram) {
   Peer *recipient = get(host, port);
   recipient->wait();
-}
-
-void PeerList::relayMessage(QString name, QString msg, QColor color) {
-  emit postMessage(name, msg, color);
 }

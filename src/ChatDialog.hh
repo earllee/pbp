@@ -3,8 +3,10 @@
 
 #include <QDialog>
 #include <QTextEdit>
+#include <QListWidget>
 #include <QLineEdit>
 #include <QColor>
+#include <ChatTab.hh>
 #include <ChatQTextEdit.hh>
 
 class ChatDialog : public QDialog {
@@ -13,18 +15,21 @@ class ChatDialog : public QDialog {
 public:
   ChatDialog();
   ~ChatDialog();
-
+  ChatTab *newChatTab(QString);
 public slots:
-  void gotReturnPressed();
-  void postMessage(QString, QString, QColor);
+  void postMessage(QString, QString, QColor, QString);
   void newPeer();
+  void newOrigin(QString);
+  void openTab(QListWidgetItem*);
 signals:
-  void newMessage(QString);
+  void newMessage(QString, QString);
   void addPeer(QString);
 private:
-  QTextEdit *textview;
-  ChatQTextEdit *textline;
+  ChatTab *broadcast;
+  QMap<QString, ChatTab*> *chats;
   QLineEdit *peerInput;
+  QListWidget *originSelect;
+  QTabWidget *tabs;
 };
 
 #endif

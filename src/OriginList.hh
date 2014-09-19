@@ -24,10 +24,11 @@ public:
   quint32 mySeqNo();
   QString myName();
   Origin *add(QString, Peer*);
-public slots:
-  void relayMessage(QString, QString, QColor);
+  void privateMessage(QVariantMap, Peer*);
+  Peer *nextHop(QString);
 signals:
-  void postMessage(QString, QString, QColor);
+  void postMessage(QString, QString, QColor, QString);
+  void newOrigin(QString);
 };
 
 #endif

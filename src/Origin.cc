@@ -45,7 +45,7 @@ bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender) {
       for(; !messages->value(seqNo - 1).empty(); seqNo++) {
 	// emit all messages that were waiting if not route rumor
 	if(messages->value(seqNo-1).contains("ChatText"))
-	  emit postMessage(name, messages->value(seqNo-1).value("ChatText").toString(), color);
+	  emit postMessage(name, messages->value(seqNo-1).value("ChatText").toString(), color, QString());
       }
     }
     if (sn > latestSeqNo) {
@@ -61,4 +61,8 @@ bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender) {
 
 Peer *Origin::getHop() {
   return hop;
+}
+
+void Origin::privateMessage(QVariantMap datagram, QString chatbox) {
+  emit postMessage(name, datagram.value("ChatText").toString(), color, chatbox);
 }

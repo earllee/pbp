@@ -23,12 +23,14 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  QObject::connect(&dialog, SIGNAL(newMessage(QString)),
-		   &sock, SLOT(localMessage(QString)));
-  QObject::connect(&sock, SIGNAL(postMessage(QString, QString, QColor)),
-		   &dialog, SLOT(postMessage(QString, QString, QColor)));
+  QObject::connect(&dialog, SIGNAL(newMessage(QString, QString)),
+		   &sock, SLOT(localMessage(QString, QString)));
+  QObject::connect(&sock, SIGNAL(postMessage(QString, QString, QColor, QString)),
+		   &dialog, SLOT(postMessage(QString, QString, QColor, QString)));
   QObject::connect(&dialog, SIGNAL(addPeer(QString)),
 		   &sock, SLOT(addPeer(QString)));
+  QObject::connect(&sock, SIGNAL(newOrigin(QString)),
+		   &dialog, SLOT(newOrigin(QString)));
 
   foreach(QString s, app.arguments().mid(1)) {
     sock.addPeer(s);

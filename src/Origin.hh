@@ -24,8 +24,9 @@ public:
   Peer *getHop();
   QVariantMap message(quint32);
   bool addMessage(quint32, QVariantMap, Peer*);
+  void privateMessage(QVariantMap, QString);
 signals:
-  void postMessage(QString, QString, QColor);
+  void postMessage(QString, QString, QColor, QString);
 };
 
 #endif

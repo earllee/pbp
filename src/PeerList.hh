@@ -34,11 +34,11 @@ public:
 public slots:
   void rumor(QVariantMap);
   void sentMessage(QHostAddress, quint16, QVariantMap);
-  void relayMessage(QString, QString, QColor);
   void antiEntropy();
 signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
-  void postMessage(QString, QString, QColor);
+  void postMessage(QString, QString, QColor, QString);
+  void newOrigin(QString);
 };
 
 #endif
