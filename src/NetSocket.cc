@@ -31,11 +31,11 @@ NetSocket::~NetSocket() {
   delete peers;
 }
 
-bool NetSocket::bind() {
+bool NetSocket::bind(bool nofwd) {
   // Try to bind to each of the range myPortMin..myPortMax in turn.
   for (int p = myPortMin; p <= myPortMax; p++) {
     if (QUdpSocket::bind(p)) {
-      peers = new PeerList(p);
+      peers = new PeerList(p, nofwd);
       connect(peers, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	      this, SLOT(sendMessage(QHostAddress, quint16, QVariantMap)));
       for (int port = myPortMin; port <= myPortMax; port++) {

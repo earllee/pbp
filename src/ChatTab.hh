@@ -13,7 +13,7 @@ class ChatTab : public QGroupBox {
 public:
   ChatTab(QString);
   ~ChatTab();
-
+  void focus();
 public slots:
   void gotReturnPressed();
   void postMessage(QString, QString, QColor);

@@ -13,7 +13,7 @@ class ChatDialog : public QDialog {
   Q_OBJECT
 
 public:
-  ChatDialog();
+  ChatDialog(bool);
   ~ChatDialog();
   ChatTab *newChatTab(QString);
 public slots:

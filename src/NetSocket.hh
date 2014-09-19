@@ -12,7 +12,7 @@ public:
   NetSocket();
   ~NetSocket();
   // Bind this socket to a Peerster-specific default port.
-  bool bind();
+  bool bind(bool);
   
 private:
   int myPortMin, myPortMax;

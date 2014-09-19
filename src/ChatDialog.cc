@@ -5,11 +5,11 @@
 #include <QColor>
 #include <QFont>
 #include <QGroupBox>
-#include <QVBoxLayout>
 #include <QGridLayout>
+#include <QLabel>
 #include <QDebug>
 
-ChatDialog::ChatDialog() {
+ChatDialog::ChatDialog(bool nofwd = false) {
   setWindowTitle("Peerster");
 
   chats = new QMap<QString, ChatTab*>();
@@ -21,8 +21,7 @@ ChatDialog::ChatDialog() {
   connect(originSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
 	  this, SLOT(openTab(QListWidgetItem*)));
 
-  tabs = new QTabWidget(this);
-
+  tabs = new QTabWidget();
   broadcast = new ChatTab("");
   tabs->addTab(broadcast, "Broadcast");
   connect(broadcast, SIGNAL(newMessage(QString, QString)),
@@ -32,12 +31,23 @@ ChatDialog::ChatDialog() {
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
   QGridLayout *layout = new QGridLayout(this);
-  layout->addWidget(tabs, 0, 0, -1, 1);
-  layout->addWidget(originSelect, 0, 1);
-  layout->addWidget(peerInput, 1, 1);
+  QLabel *label = new QLabel(this);
+  label->setText("Origin List");
+  if (nofwd) {
+    layout->addWidget(label, 0, 0);
+    layout->addWidget(originSelect, 1, 0);
+    layout->addWidget(peerInput, 2, 0);
+  } else {
+    layout->addWidget(label, 0, 1);
+    layout->addWidget(originSelect, 1, 1);
+    layout->addWidget(peerInput, 2, 1);
+    layout->addWidget(tabs, 0, 0, -1, 1);
+  }
 
   connect(peerInput, SIGNAL(returnPressed()),
 	  this, SLOT(newPeer()));
+
+  broadcast->focus();
 }
 
 ChatDialog::~ChatDialog() {
@@ -90,4 +100,5 @@ void ChatDialog::openTab(QListWidgetItem *item) {
   else
     tab = newChatTab(name);
   tabs->setCurrentWidget(tab);
+  tab->focus();
 }

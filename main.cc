@@ -13,13 +13,19 @@ int main(int argc, char **argv) {
   // Initialize Qt toolkit
   QApplication app(argc,argv);
 
+  bool nofwd = false;
+  foreach(QString s, app.arguments().mid(1)) {
+    if(s == "-noforward")
+      nofwd = true;
+  }
+
   // Create an initial chat dialog window
-  ChatDialog dialog;
+  ChatDialog dialog(nofwd);
   dialog.show();
 
   // Create a UDP network socket
   NetSocket sock;
-  if (!sock.bind()) {
+  if (!sock.bind(nofwd)) {
     exit(1);
   }
 
@@ -33,7 +39,8 @@ int main(int argc, char **argv) {
 		   &dialog, SLOT(newOrigin(QString)));
 
   foreach(QString s, app.arguments().mid(1)) {
-    sock.addPeer(s);
+    if(s != "-noforward")
+      sock.addPeer(s);
   }
 
   // Enter the Qt main loop; everything else is event driven

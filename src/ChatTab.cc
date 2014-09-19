@@ -29,10 +29,6 @@ ChatTab::ChatTab(QString n) {
   layout->addWidget(textview);
   layout->addWidget(textline);
 
-  if(name.isEmpty())
-    // set focus on text input if broadcast
-    textline->setFocus();
-
   // Register a callback on the textline's returnPressed signal
   // so that we can send the message entered by the user.
   connect(textline, SIGNAL(returnPressed()),
@@ -61,4 +57,8 @@ void ChatTab::postMessage(QString name, QString msg, QColor color) {
   textview->setFontWeight(QFont::Normal);
   textview->insertPlainText(msg);
   textview->moveCursor(QTextCursor::End);
+}
+
+void ChatTab::focus() {
+  textline->setFocus();
 }

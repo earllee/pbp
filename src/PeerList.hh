@@ -13,13 +13,14 @@ class PeerList : public QObject {
 
 private:
   Peer *me;
+  bool nofwd;
   QMap<QString, Peer*> *peers;
   OriginList *origins;
   QTimer *entropyTimer;
   Peer *get(QHostAddress, quint16);
   Peer *random();
 public:
-  PeerList(quint16);
+  PeerList(quint16, bool);
   ~PeerList();
   Peer *add(QHostAddress, QString, quint16);
   Peer *add(QHostAddress, quint16);

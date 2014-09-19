@@ -9,7 +9,7 @@
 #include <Peer.hh>
 #include <PeerList.hh>
 
-PeerList::PeerList(quint16 port) {
+PeerList::PeerList(quint16 port, bool nf = false) {
   peers = new QMap<QString, Peer*>();
   connect(this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SLOT(sentMessage(QHostAddress, quint16, QVariantMap)));
@@ -35,6 +35,8 @@ PeerList::PeerList(quint16 port) {
   connect(entropyTimer, SIGNAL(timeout()),
 	  this, SLOT(antiEntropy()));
   entropyTimer->start();
+
+  nofwd = nf;
 }
 
 PeerList::~PeerList() {
@@ -93,6 +95,8 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
 
   if(datagram.contains("Dest")) {
     // is private
+    if (nofwd)
+      return;
     QString dest = datagram.value("Dest").toString();
     QString origin = datagram.value("Origin").toString();
     if(dest == myName()) {
@@ -112,6 +116,9 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
     return;
   } else if(datagram.contains("Want")) {
     // is status
+    if (nofwd) {
+      return;
+    }
     QVariantMap message = origins->nextNeededMessage(datagram);
     if(message.empty()) {
       // send status back if there are messages missing
@@ -129,7 +136,7 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
     if(isHot) {
       rumor(datagram);
     }
-    if(!isMe) {
+    if(!isMe && !nofwd) {
       emit sendMessage(host, port, origins->status());
     }
   }
@@ -162,6 +169,8 @@ Peer *PeerList::random() {
 }
 
 void PeerList::rumor(QVariantMap datagram) {
+  if (nofwd && datagram.contains("ChatText"))
+    return;
   Peer *recipient = random();
   if(recipient != NULL) {
     recipient->makeConnection(datagram);
@@ -170,6 +179,8 @@ void PeerList::rumor(QVariantMap datagram) {
 }
 
 void PeerList::antiEntropy() {
+  if (nofwd)
+    return;
   Peer *recipient = random();
   if(recipient != NULL) {
     recipient->makeConnection();
