@@ -19,7 +19,7 @@ public:
   ~OriginList();
   bool needMessage(QVariantMap);
   QVariantMap nextNeededMessage(QVariantMap);
-  bool addMessage(QVariantMap, Peer*);
+  bool addMessage(QVariantMap, Peer*, bool);
   QVariantMap status();
   quint32 mySeqNo();
   QString myName();

@@ -93,11 +93,11 @@ void NetSocket::localMessage(QString text, QString dest) {
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
-void NetSocket::routeRumor(bool broadcast) {
+void NetSocket::routeRumor() {
   QVariantMap datagram;
   datagram.insert("Origin", QVariant(peers->myName()));
   datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
-  peers->newMessage(peers->myHost(), peers->myPort(), datagram, broadcast);
+  peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
 void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagram) {

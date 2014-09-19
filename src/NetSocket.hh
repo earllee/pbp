@@ -25,7 +25,7 @@ public slots:
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
   void addPeer(QString);
-  void routeRumor(bool broadcast = false);
+  void routeRumor();
 signals:
   void postMessage(QString, QString, QColor, QString);
   void newOrigin(QString);

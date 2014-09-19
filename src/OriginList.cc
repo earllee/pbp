@@ -80,13 +80,12 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
   return QVariantMap();
 }
 
-bool OriginList::addMessage(QVariantMap message, Peer *sender) {
+bool OriginList::addMessage(QVariantMap message, Peer *sender, bool direct) {
   QString name = message.value("Origin").toString();
   Origin *o = get(name);
-  if(!o) {
+  if(!o)
     o = add(name, sender);
-  }
-  return o->addMessage(message.value("SeqNo").toUInt(), message, sender);
+  return o->addMessage(message.value("SeqNo").toUInt(), message, sender, direct);
 }
 
 QVariantMap OriginList::status() {

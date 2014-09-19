@@ -12,6 +12,7 @@ Origin::Origin(QString n, Peer *h) {
   color.setHsv(qrand() % 360, 128 + qrand() % 128, (qrand() % 128) + 64);
   messages = new QVector<QVariantMap>();
   hop = h;
+  direct = false;
   qDebug() << QString("New hop for %1 is %2:%3").arg(name).arg(hop->getHost().toString()).arg(hop->getPort());
 }
 
@@ -31,10 +32,9 @@ QVariantMap Origin::message(quint32 sn) {
   return messages->value(sn - 1);
 }
 
-bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender) {
-  if((int)sn > messages->size()) {
+bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender, bool dir) {
+  if((int)sn > messages->size())
     messages->resize(sn);
-  }
   if(messages->value(sn - 1).empty() && sn >= seqNo) {
     // set the new message if it doesn't already exist
     messages->replace(sn - 1, datagram);
@@ -48,7 +48,8 @@ bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender) {
 	  emit postMessage(name, messages->value(seqNo-1).value("ChatText").toString(), color, QString());
       }
     }
-    if (sn > latestSeqNo) {
+    // update if newest otherwise update if direct but wasn't already direct
+    if (sn > latestSeqNo || (sn == latestSeqNo && dir && !direct)) {
       latestSeqNo = sn;
       hop = sender;
       qDebug() << QString("New hop for %1 is %2:%3").arg(name).arg(hop->getHost().toString()).arg(hop->getPort());

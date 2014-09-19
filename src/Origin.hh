@@ -16,6 +16,7 @@ private:
   QColor color;
   QVector<QVariantMap> *messages;
   Peer *hop;
+  bool direct;
 public:
   Origin(QString, Peer*);
   ~Origin();
@@ -23,7 +24,7 @@ public:
   quint32 next();
   Peer *getHop();
   QVariantMap message(quint32);
-  bool addMessage(quint32, QVariantMap, Peer*);
+  bool addMessage(quint32, QVariantMap, Peer*, bool);
   void privateMessage(QVariantMap, QString);
 signals:
   void postMessage(QString, QString, QColor, QString);

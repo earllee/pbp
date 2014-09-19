@@ -25,9 +25,8 @@ int main(int argc, char **argv) {
 
   // Create a UDP network socket
   NetSocket sock;
-  if (!sock.bind(nofwd)) {
+  if (!sock.bind(nofwd))
     exit(1);
-  }
 
   QObject::connect(&dialog, SIGNAL(newMessage(QString, QString)),
 		   &sock, SLOT(localMessage(QString, QString)));
@@ -43,7 +42,7 @@ int main(int argc, char **argv) {
       sock.addPeer(s);
   }
 
-  sock.routeRumor(true);
+  sock.routeRumor();
 
   // Enter the Qt main loop; everything else is event driven
   return app.exec();  

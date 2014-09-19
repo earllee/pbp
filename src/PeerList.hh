@@ -19,13 +19,16 @@ private:
   QTimer *entropyTimer;
   Peer *get(QHostAddress, quint16);
   Peer *random();
+  void handlePrivate(QVariantMap, Peer*);
+  void handleStatus(QVariantMap, Peer*);
+  void handleRumor(QVariantMap, Peer*);
 public:
   PeerList(quint16, bool nf = false);
   ~PeerList();
   Peer *add(QHostAddress, QString, quint16);
   Peer *add(QHostAddress, quint16);
   Peer *add(QString, quint16);
-  void newMessage(QHostAddress, quint16, QVariantMap, bool broadcast = false);
+  void newMessage(QHostAddress, quint16, QVariantMap);
   Peer *getMe();
   void setMe(QHostAddress, quint16);
   QHostAddress myHost();
@@ -34,7 +37,7 @@ public:
   quint32 mySeqNo();
 public slots:
   void rumor(QVariantMap, bool broadcast = false);
-  void sentMessage(QHostAddress, quint16, QVariantMap);
+  void sentMessage(QHostAddress, quint16);
   void antiEntropy();
 signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
