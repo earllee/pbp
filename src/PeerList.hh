@@ -20,12 +20,12 @@ private:
   Peer *get(QHostAddress, quint16);
   Peer *random();
 public:
-  PeerList(quint16, bool);
+  PeerList(quint16, bool nf = false);
   ~PeerList();
   Peer *add(QHostAddress, QString, quint16);
   Peer *add(QHostAddress, quint16);
   Peer *add(QString, quint16);
-  void newMessage(QHostAddress, quint16, QVariantMap);
+  void newMessage(QHostAddress, quint16, QVariantMap, bool broadcast = false);
   Peer *getMe();
   void setMe(QHostAddress, quint16);
   QHostAddress myHost();
@@ -33,7 +33,7 @@ public:
   QString myName();
   quint32 mySeqNo();
 public slots:
-  void rumor(QVariantMap);
+  void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16, QVariantMap);
   void antiEntropy();
 signals:

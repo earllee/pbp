@@ -9,7 +9,7 @@
 #include <Peer.hh>
 #include <PeerList.hh>
 
-PeerList::PeerList(quint16 port, bool nf = false) {
+PeerList::PeerList(quint16 port, bool nf) {
   peers = new QMap<QString, Peer*>();
   connect(this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SLOT(sentMessage(QHostAddress, quint16, QVariantMap)));
@@ -80,7 +80,7 @@ Peer *PeerList::get(QHostAddress host, quint16 port) {
   return peers->value(QString("%1:%2").arg(host.toString()).arg(port));
 }
 
-void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram) {
+void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram, bool broadcast) {
   bool isMe = (host == me->getHost() && port == me->getPort());
   Peer *sender;
   if(isMe) {
@@ -134,7 +134,7 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
     // is rumor
     bool isHot = origins->addMessage(datagram, sender);
     if(isHot) {
-      rumor(datagram);
+      rumor(datagram, broadcast);
     }
     if(!isMe && !nofwd) {
       emit sendMessage(host, port, origins->status());
@@ -168,13 +168,20 @@ Peer *PeerList::random() {
   }
 }
 
-void PeerList::rumor(QVariantMap datagram) {
+void PeerList::rumor(QVariantMap datagram, bool broadcast) {
   if (nofwd && datagram.contains("ChatText"))
     return;
-  Peer *recipient = random();
-  if(recipient != NULL) {
-    recipient->makeConnection(datagram);
-    emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
+  if(broadcast) {
+    foreach(Peer *recipient, peers->values()) {
+      recipient->makeConnection(datagram);
+      emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
+    }
+  } else {
+    Peer *recipient = random();
+    if(recipient != NULL) {
+      recipient->makeConnection(datagram);
+      emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
+    }
   }
 }
 

@@ -49,7 +49,6 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(newOrigin(QString)));
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
-      routeRumor(); // initially notify peers
       routeTimer->start();
       return true;
     }
@@ -94,11 +93,11 @@ void NetSocket::localMessage(QString text, QString dest) {
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
-void NetSocket::routeRumor() {
+void NetSocket::routeRumor(bool broadcast) {
   QVariantMap datagram;
   datagram.insert("Origin", QVariant(peers->myName()));
   datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
-  peers->newMessage(peers->myHost(), peers->myPort(), datagram);
+  peers->newMessage(peers->myHost(), peers->myPort(), datagram, broadcast);
 }
 
 void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagram) {

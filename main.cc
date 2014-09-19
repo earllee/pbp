@@ -43,6 +43,8 @@ int main(int argc, char **argv) {
       sock.addPeer(s);
   }
 
+  sock.routeRumor(true);
+
   // Enter the Qt main loop; everything else is event driven
   return app.exec();  
 }

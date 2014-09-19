@@ -9,7 +9,7 @@
 #include <QLabel>
 #include <QDebug>
 
-ChatDialog::ChatDialog(bool nofwd = false) {
+ChatDialog::ChatDialog(bool nofwd) {
   setWindowTitle("Peerster");
 
   chats = new QMap<QString, ChatTab*>();
