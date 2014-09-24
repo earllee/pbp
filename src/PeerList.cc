@@ -145,7 +145,7 @@ void PeerList::handleRumor(QVariantMap datagram, Peer *sender) {
     bool direct = true;
     if(datagram.contains("LastIP")) {
       direct = false;
-      QHostAddress lastHost(datagram.value("LastIP").toString());
+      QHostAddress lastHost(datagram.value("LastIP").toUInt());
       quint16 lastPort = datagram.value("LastPort").toUInt();
       if(!lastHost.isNull()) {
 	last = get(lastHost, lastPort);
@@ -157,7 +157,7 @@ void PeerList::handleRumor(QVariantMap datagram, Peer *sender) {
     if(origins->addMessage(datagram, last, direct)) {
       // add message returns whether or not the message is new (i.e., hot)
       if(sender != me) {
-	datagram.insert("LastIP", QVariant(sender->getHost().toString()));
+	datagram.insert("LastIP", QVariant(sender->getHost().toIPv4Address()));
 	datagram.insert("LastPort", QVariant(sender->getPort()));
       }
       // broadcast to everyone if it's a routing message
