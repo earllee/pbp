@@ -109,16 +109,21 @@ void PeerList::handlePrivate(QVariantMap datagram, Peer *sender) {
     if(dest == myName()) {
       origins->privateMessage(datagram, sender);
     } else {
+      bool send = true;
       if(origin == myName()) {
 	origins->privateMessage(datagram, sender);
       } else {
 	quint32 hopLimit = datagram.value("HopLimit").toUInt();
-	if(--hopLimit > 0)
-	  datagram.insert("HopLimit", hopLimit);
+	if(hopLimit > 0)
+	  datagram.insert("HopLimit", hopLimit - 1);
+	else
+	  send = false;
       }
-      Peer *hop = origins->nextHop(dest);
-      if(hop)
-	emit sendMessage(hop->getHost(), hop->getPort(), datagram);
+      if(send) {
+	Peer *hop = origins->nextHop(dest);
+	if(hop)
+	  emit sendMessage(hop->getHost(), hop->getPort(), datagram);
+      }
     }
 }
 
