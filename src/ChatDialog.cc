@@ -7,6 +7,8 @@
 #include <QGroupBox>
 #include <QGridLayout>
 #include <QLabel>
+#include <QPushButton>
+#include <QFileDialog>
 #include <QDebug>
 
 ChatDialog::ChatDialog(bool nofwd) {
@@ -26,6 +28,10 @@ ChatDialog::ChatDialog(bool nofwd) {
   tabs->addTab(broadcast, "Broadcast");
   connect(broadcast, SIGNAL(newMessage(QString, QString)),
 	  this, SIGNAL(newMessage(QString, QString)));
+
+  fileButton = new QPushButton("Share file(s)", this);
+  connect(fileButton, SIGNAL(clicked()),
+	  this, SLOT(openFileDialog()));
   
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:
@@ -41,6 +47,7 @@ ChatDialog::ChatDialog(bool nofwd) {
     layout->addWidget(label, 0, 1);
     layout->addWidget(originSelect, 1, 1);
     layout->addWidget(peerInput, 2, 1);
+    layout->addWidget(fileButton, 3, 1);
     layout->addWidget(tabs, 0, 0, -1, 1);
   }
 
@@ -101,4 +108,12 @@ void ChatDialog::openTab(QListWidgetItem *item) {
     tab = newChatTab(name);
   tabs->setCurrentWidget(tab);
   tab->focus();
+}
+
+void ChatDialog::openFileDialog() {
+  QFileDialog dialog(this);
+  dialog.setFileMode(QFileDialog::ExistingFiles);
+  if (dialog.exec()) {
+    qDebug() << dialog.selectedFiles();
+  }
 }

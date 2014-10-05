@@ -8,6 +8,8 @@
 #include <QColor>
 #include <ChatTab.hh>
 #include <ChatQTextEdit.hh>
+#include <QPushButton>
+#include <QFileDialog>
 
 class ChatDialog : public QDialog {
   Q_OBJECT
@@ -21,6 +23,7 @@ public slots:
   void newPeer();
   void newOrigin(QString);
   void openTab(QListWidgetItem*);
+  void openFileDialog();
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
@@ -30,6 +33,7 @@ private:
   QLineEdit *peerInput;
   QListWidget *originSelect;
   QTabWidget *tabs;
+  QPushButton *fileButton;
 };
 
 #endif
