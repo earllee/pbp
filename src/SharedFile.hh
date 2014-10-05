@@ -9,7 +9,7 @@ class SharedFile : public QObject {
 
 private:
   QString filename;
-  qint64 filesize;
+  qint64 fileSize;
   QByteArray *blocklist;
   QByteArray *blocklistHash;
 public:
