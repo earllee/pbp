@@ -2,6 +2,7 @@
 
 #include <ChatDialog.hh>
 #include <ChatTab.hh>
+#include <SharedFile.hh>
 #include <QColor>
 #include <QFont>
 #include <QGroupBox>
@@ -114,6 +115,8 @@ void ChatDialog::openFileDialog() {
   QFileDialog dialog(this);
   dialog.setFileMode(QFileDialog::ExistingFiles);
   if (dialog.exec()) {
-    qDebug() << dialog.selectedFiles();
+    foreach (QString filename, dialog.selectedFiles()) {
+      SharedFile f(filename);
+    }
   }
 }

@@ -1,5 +1,6 @@
 #include <unistd.h>
 
+#include <QtCrypto>
 #include <QDebug>
 #include <Origin.hh>
 #include <OriginList.hh>
@@ -10,6 +11,9 @@
 #include <QApplication>
 
 int main(int argc, char **argv) {
+  // Initialize QtCrypto
+  QCA::Initializer qcainit;
+
   // Initialize Qt toolkit
   QApplication app(argc,argv);
 
