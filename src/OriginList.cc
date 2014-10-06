@@ -17,6 +17,8 @@ OriginList::OriginList(Peer *myPeer) {
   me = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100), myPeer);
   connect(me, SIGNAL(postMessage(QString, QString, QColor, QString)),
 	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  connect(me, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
+	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
   origins = new QMap<QString, Origin*>();
 }
 
@@ -39,6 +41,8 @@ Origin *OriginList::add(QString name, Peer *sender) {
   Origin *o = new Origin(name, sender);
   connect(o, SIGNAL(postMessage(QString, QString, QColor, QString)),
 	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  connect(o, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
+	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
   origins->insert(name, o);
   emit newOrigin(name);
   return o;
@@ -110,18 +114,31 @@ quint32 OriginList::mySeqNo() {
 void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
   QString from = datagram.value("Origin").toString();
   Origin *o;
-  QString chatbox;
-  if(from == myName()) {
-    o = me;
-    chatbox = datagram.value("Dest").toString();
-  } else {
+  if (datagram.contains("BlockRequest")) {
+    if (from == me->getName())
+      return;
     o = get(from);
     if(!o)
       o = add(from, sender);
-    chatbox = from;
+    o->blockRequest(datagram, me);
+  } else if (datagram.contains("BlockReply")) {
+    o = get(from);
+    if(!o)
+      o = add(from, sender);
+    o->blockReply(datagram, me);
+  } else {
+    QString chatbox;
+    if(from == myName()) {
+      o = me;
+      chatbox = datagram.value("Dest").toString();
+    } else {
+      o = get(from);
+      if(!o)
+	o = add(from, sender);
+      chatbox = from;
+    }
+    o->privateMessage(datagram, chatbox);
   }
-  o->privateMessage(datagram, chatbox);
-
 }
 
 Peer *OriginList::nextHop(QString dest) {
@@ -130,4 +147,8 @@ Peer *OriginList::nextHop(QString dest) {
     return o->getHop();
   else
     return NULL;
+}
+
+void OriginList::shareFile(QString filename) {
+  me->shareFile(filename);
 }

@@ -29,6 +29,8 @@ PeerList::PeerList(quint16 port, bool nf) {
 	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
   connect(origins, SIGNAL(newOrigin(QString)),
 	  this, SIGNAL(newOrigin(QString)));
+  connect(origins, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
+	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
 
   entropyTimer = new QTimer(this);
   entropyTimer->setInterval(10000);
@@ -223,4 +225,8 @@ void PeerList::antiEntropy() {
 void PeerList::sentMessage(QHostAddress host, quint16 port) {
   Peer *recipient = get(host, port);
   recipient->wait();
+}
+
+void PeerList::shareFile(QString filename) {
+  origins->shareFile(filename);
 }

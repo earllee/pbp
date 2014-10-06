@@ -10,11 +10,17 @@ class SharedFile : public QObject {
 private:
   QString filename;
   qint64 fileSize;
+  qint64 blocklistSize;
   QByteArray *blocklist;
   QByteArray *blocklistHash;
+  int indexOf(QByteArray);
 public:
   SharedFile(QString);
+  SharedFile(QByteArray, QByteArray);
   ~SharedFile();
+  QByteArray blockRequest(QByteArray, QByteArray*);
+  QByteArray blockReply(QByteArray, QByteArray);
+  QByteArray meta();
 };
 
 #endif

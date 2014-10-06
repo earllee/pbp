@@ -35,6 +35,7 @@ public:
   quint16 myPort();
   QString myName();
   quint32 mySeqNo();
+  void shareFile(QString);
 public slots:
   void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16);

@@ -93,6 +93,19 @@ void NetSocket::localMessage(QString text, QString dest) {
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
+void NetSocket::fileMessage(QByteArray hash, QString dest) {
+  QVariantMap datagram;
+  datagram.insert("Origin", QVariant(peers->myName()));
+  datagram.insert("Dest", QVariant(dest));
+  datagram.insert("HopLimit", QVariant(HOPLIMIT));
+  datagram.insert("BlockRequest", QVariant(hash));
+  peers->newMessage(peers->myHost(), peers->myPort(), datagram);
+}
+
+void NetSocket::shareFile(QString filename) {
+  peers->shareFile(filename);
+}
+
 void NetSocket::routeRumor() {
   QVariantMap datagram;
   datagram.insert("Origin", QVariant(peers->myName()));
@@ -134,6 +147,10 @@ QString NetSocket::stringify(QVariantMap datagram) {
       str.append(QString("%1 (%2), ").arg(origin).arg(status.value(origin).toUInt()));
     }
     str = str.left(str.size() - 2);
+  } else if (datagram.contains("BlockRequest")) {
+    str.append(QString("BlockRequest -> %1 requesting from %2").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()));
+  } else if (datagram.contains("BlockReply")) {
+    str.append(QString("BlockReply -> %1 replying to %2").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()));
   } else if(datagram.contains("Dest")) {
     str.append("Private -> ");
     str.append(QString("%1 to %2 (HopLimit: %3) %4").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()).arg(datagram.value("HopLimit").toUInt()).arg(datagram.value("ChatText").toString()));

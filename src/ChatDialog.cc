@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QFileDialog>
+#include <QByteArray>
 #include <QDebug>
 
 ChatDialog::ChatDialog(bool nofwd) {
@@ -33,6 +34,10 @@ ChatDialog::ChatDialog(bool nofwd) {
   fileButton = new QPushButton("Share file(s)", this);
   connect(fileButton, SIGNAL(clicked()),
 	  this, SLOT(openFileDialog()));
+
+  downloadButton = new QPushButton("Download a file", this);
+  connect(downloadButton, SIGNAL(clicked()),
+	  this, SLOT(openDownloadDialog()));
   
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:
@@ -49,6 +54,7 @@ ChatDialog::ChatDialog(bool nofwd) {
     layout->addWidget(originSelect, 1, 1);
     layout->addWidget(peerInput, 2, 1);
     layout->addWidget(fileButton, 3, 1);
+    layout->addWidget(downloadButton, 4, 1);
     layout->addWidget(tabs, 0, 0, -1, 1);
   }
 
@@ -116,7 +122,21 @@ void ChatDialog::openFileDialog() {
   dialog.setFileMode(QFileDialog::ExistingFiles);
   if (dialog.exec()) {
     foreach (QString filename, dialog.selectedFiles()) {
-      SharedFile f(filename);
+      emit shareFile(filename);
     }
   }
+}
+
+void ChatDialog::openDownloadDialog() {
+  bool ok;
+  QString origin, hash;
+  origin = QInputDialog::getText(this, "Download a file", "Origin",
+				 QLineEdit::Normal, QString(), &ok);
+  if (!ok || origin.isEmpty())
+    return;
+  hash = QInputDialog::getText(this, "Download a file", "Metafile hash",
+			       QLineEdit::Normal, QString(), &ok);
+  if (!ok || hash.isEmpty())
+    return;
+  emit downloadFile(QByteArray::fromHex(hash.toUtf8()), origin);
 }

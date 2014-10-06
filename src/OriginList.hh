@@ -26,9 +26,11 @@ public:
   Origin *add(QString, Peer*);
   void privateMessage(QVariantMap, Peer*);
   Peer *nextHop(QString);
+  void shareFile(QString);
 signals:
   void postMessage(QString, QString, QColor, QString);
   void newOrigin(QString);
+  void sendMessage(QHostAddress, quint16, QVariantMap);
 };
 
 #endif

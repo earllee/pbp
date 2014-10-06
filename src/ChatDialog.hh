@@ -10,6 +10,7 @@
 #include <ChatQTextEdit.hh>
 #include <QPushButton>
 #include <QFileDialog>
+#include <QInputDialog>
 
 class ChatDialog : public QDialog {
   Q_OBJECT
@@ -24,9 +25,12 @@ public slots:
   void newOrigin(QString);
   void openTab(QListWidgetItem*);
   void openFileDialog();
+  void openDownloadDialog();
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
+  void shareFile(QString);
+  void downloadFile(QByteArray, QString);
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;
@@ -34,6 +38,7 @@ private:
   QListWidget *originSelect;
   QTabWidget *tabs;
   QPushButton *fileButton;
+  QPushButton *downloadButton;
 };
 
 #endif

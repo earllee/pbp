@@ -5,6 +5,7 @@
 #include <QVariant>
 #include <QColor>
 #include <Peer.hh>
+#include <SharedFile.hh>
 
 class Origin : public QObject {
   Q_OBJECT
@@ -15,8 +16,19 @@ private:
   quint32 latestSeqNo;
   QColor color;
   QVector<QVariantMap> *messages;
+  // if the origin is me then files are the files that I'm sharing where the
+  // key is the metafile's hash
+  // if the origin is not me then files are the files that I'm downloading from
+  // that origin where the key is the hash of the next expected block reply
+  QMap<QByteArray, SharedFile*> *files;
+  // if the origin is me then downloads is not in use
+  // if the origin is not me then files are the files that are currently being
+  // downloaded from me by that origin where the key is the next expected
+  // block request
+  QMap<QByteArray, SharedFile*> *downloads;
   Peer *hop;
   bool direct;
+  const quint32 HOPLIMIT;
 public:
   Origin(QString, Peer*);
   ~Origin();
@@ -26,8 +38,13 @@ public:
   QVariantMap message(quint32);
   bool addMessage(quint32, QVariantMap, Peer*, bool);
   void privateMessage(QVariantMap, QString);
+  void blockRequest(QVariantMap, Origin*);
+  void blockReply(QVariantMap, Origin*);
+  void shareFile(QString);
+  SharedFile *fileByHash(QByteArray);
 signals:
   void postMessage(QString, QString, QColor, QString);
+  void sendMessage(QHostAddress, quint16, QVariantMap);
 };
 
 #endif
