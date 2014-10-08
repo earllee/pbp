@@ -14,6 +14,7 @@ private:
   QByteArray *blocklist;
   QByteArray *blocklistHash;
   qint64 currentBlock;
+  QString from;
 public:
   SharedFile(QString);
   SharedFile(QString, QByteArray, QByteArray bl = QByteArray());

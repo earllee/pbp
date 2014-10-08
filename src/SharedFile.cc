@@ -85,11 +85,9 @@ QByteArray SharedFile::blockReply(QByteArray blockHash, QByteArray data) {
   QFile file(loc);
   file.open(QIODevice::ReadWrite | QIODevice::Append);
   file.write(data);
-  qDebug() << "write";
-  if (currentBlock + 1 < blocklistSize / HASHSIZE) {
-    currentBlock++;
+  currentBlock++;
+  if (currentBlock < blocklistSize / HASHSIZE)
     return blocklist->mid(currentBlock + HASHSIZE, HASHSIZE);
-  }
   else
     return QByteArray();
 }

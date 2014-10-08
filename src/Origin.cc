@@ -121,7 +121,6 @@ QList<SharedFile*> Origin::searchFiles(QString query) {
 
 void Origin::blockRequest(QVariantMap datagram, Origin *me) {
   QByteArray blockHash = datagram.value("BlockRequest").toByteArray();
-  qDebug() << blockHash.toHex();
   SharedFile *file = downloads->value(blockHash);
   if (!file) {
     SharedFile *fileToDl = me->fileByHash(blockHash);
@@ -130,9 +129,7 @@ void Origin::blockRequest(QVariantMap datagram, Origin *me) {
     file = new SharedFile(fileToDl->getFilename(), fileToDl->getMeta(), fileToDl->getBlocklist());
   }
   QByteArray next;
-  qDebug() << "trying to grab data";
   QByteArray data = file->blockRequest(blockHash, &next);
-  qDebug() << "grabbed data";
   downloads->remove(blockHash);
   if (!data.isEmpty()) {
     if (!next.isEmpty())
@@ -148,7 +145,6 @@ void Origin::blockRequest(QVariantMap datagram, Origin *me) {
 }
 
 void Origin::blockReply(QVariantMap datagram, Origin *me) {
-  qDebug() << "received reply";
   QByteArray blockHash = datagram.value("BlockReply").toByteArray();
   QByteArray data = datagram.value("Data").toByteArray();
   SharedFile *file = files->value(blockHash);

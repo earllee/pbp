@@ -165,6 +165,10 @@ QString NetSocket::stringify(QVariantMap datagram) {
     str.append(QString("BlockRequest -> %1 requesting from %2").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()));
   } else if (datagram.contains("BlockReply")) {
     str.append(QString("BlockReply -> %1 replying to %2").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()));
+  } else if (datagram.contains("Search")) {
+    str.append(QString("Search -> %1 searching for %2 (Budget: %3)").arg(datagram.value("Origin").toString()).arg(datagram.value("Search").toString()).arg(datagram.value("Budget").toUInt()));
+  } else if (datagram.contains("SearchReply")) {
+    str.append(QString("SearchReply -> %1 replying to %2 for %3").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()).arg(datagram.value("SearchReply").toUInt()));
   } else if(datagram.contains("Dest")) {
     str.append("Private -> ");
     str.append(QString("%1 to %2 (HopLimit: %3) %4").arg(datagram.value("Origin").toString()).arg(datagram.value("Dest").toString()).arg(datagram.value("HopLimit").toUInt()).arg(datagram.value("ChatText").toString()));
