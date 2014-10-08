@@ -93,7 +93,8 @@ void NetSocket::localMessage(QString text, QString dest) {
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
-void NetSocket::fileMessage(QByteArray hash, QString dest) {
+void NetSocket::fileMessage(QString filename, QByteArray hash, QString dest) {
+  peers->startDownload(filename, hash, dest);
   QVariantMap datagram;
   datagram.insert("Origin", QVariant(peers->myName()));
   datagram.insert("Dest", QVariant(dest));

@@ -30,7 +30,7 @@ signals:
   void newMessage(QString, QString);
   void addPeer(QString);
   void shareFile(QString);
-  void downloadFile(QByteArray, QString);
+  void downloadFile(QString, QByteArray, QString);
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;

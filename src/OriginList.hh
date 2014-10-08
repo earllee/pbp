@@ -27,6 +27,7 @@ public:
   void privateMessage(QVariantMap, Peer*);
   Peer *nextHop(QString);
   void shareFile(QString);
+  void startDownload(QString, QByteArray, QString);
 signals:
   void postMessage(QString, QString, QColor, QString);
   void newOrigin(QString);

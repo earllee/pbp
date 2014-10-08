@@ -111,29 +111,34 @@ quint32 OriginList::mySeqNo() {
   return me->next();
 }
 
+void OriginList::startDownload(QString filename, QByteArray meta, QString dest) {
+  Origin *o = get(dest);
+  if (!o)
+    return;
+  o->startDownload(filename, meta);
+}
+
 void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
   QString from = datagram.value("Origin").toString();
   Origin *o;
   if (datagram.contains("BlockRequest")) {
-    if (from == me->getName())
-      return;
     o = get(from);
-    if(!o)
+    if (!o)
       o = add(from, sender);
     o->blockRequest(datagram, me);
   } else if (datagram.contains("BlockReply")) {
     o = get(from);
-    if(!o)
+    if (!o)
       o = add(from, sender);
     o->blockReply(datagram, me);
   } else {
     QString chatbox;
-    if(from == myName()) {
+    if (from == myName()) {
       o = me;
       chatbox = datagram.value("Dest").toString();
     } else {
       o = get(from);
-      if(!o)
+      if (!o)
 	o = add(from, sender);
       chatbox = from;
     }
@@ -143,10 +148,9 @@ void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
 
 Peer *OriginList::nextHop(QString dest) {
   Origin *o = get(dest);
-  if(o)
-    return o->getHop();
-  else
+  if (!o)
     return NULL;
+  return o->getHop();
 }
 
 void OriginList::shareFile(QString filename) {

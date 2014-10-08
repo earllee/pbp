@@ -81,20 +81,26 @@ void Origin::privateMessage(QVariantMap datagram, QString chatbox) {
 
 void Origin::shareFile(QString filename) {
   SharedFile *file = new SharedFile(filename);
-  files->insert(file->meta(), file);
+  files->insert(file->getMeta(), file);
 }
 
 SharedFile *Origin::fileByHash(QByteArray metaHash) {
   return files->value(metaHash);
 }
 
+void Origin::startDownload(QString filename, QByteArray meta) {
+  files->insert(meta, new SharedFile(filename, meta));
+}
+
 void Origin::blockRequest(QVariantMap datagram, Origin *me) {
   QByteArray blockHash = datagram.value("BlockRequest").toByteArray();
   SharedFile *file = downloads->value(blockHash);
-  if (!file)
-    file = me->fileByHash(blockHash);
-  if (!file)
-    return;
+  if (!file) {
+    SharedFile *fileToDl = me->fileByHash(blockHash);
+    if (!fileToDl)
+      return;
+    file = new SharedFile(fileToDl->getFilename(), fileToDl->getMeta(), fileToDl->getBlocklist());
+  }
   QByteArray next;
   QByteArray data = file->blockRequest(blockHash, &next);
   downloads->remove(blockHash);
@@ -116,7 +122,7 @@ void Origin::blockReply(QVariantMap datagram, Origin *me) {
   QByteArray data = datagram.value("Data").toByteArray();
   SharedFile *file = files->value(blockHash);
   if (!file)
-    file = new SharedFile(blockHash, data);
+    return;
   QByteArray next = file->blockReply(blockHash, data);
   downloads->remove(blockHash);
   if (!next.isEmpty()) {

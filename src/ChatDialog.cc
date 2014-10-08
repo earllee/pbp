@@ -138,5 +138,5 @@ void ChatDialog::openDownloadDialog() {
 			       QLineEdit::Normal, QString(), &ok);
   if (!ok || hash.isEmpty())
     return;
-  emit downloadFile(QByteArray::fromHex(hash.toUtf8()), origin);
+  emit downloadFile("derp", QByteArray::fromHex(hash.toUtf8()), origin);
 }

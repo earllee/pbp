@@ -85,6 +85,10 @@ Peer *PeerList::get(QHostAddress host, quint16 port) {
     return peers->value(QString("%1:%2").arg(host.toString()).arg(port));
 }
 
+void PeerList::startDownload(QString filename, QByteArray meta, QString dest) {
+  origins->startDownload(filename, meta, dest);
+}
+
 void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram) {
   Peer *sender = get(host, port);
   if(!sender)
@@ -112,14 +116,14 @@ void PeerList::handlePrivate(QVariantMap datagram, Peer *sender) {
       origins->privateMessage(datagram, sender);
     } else {
       bool send = true;
-      if(origin == myName()) {
-	origins->privateMessage(datagram, sender);
-      } else {
+      if(origin != myName()) {
 	quint32 hopLimit = datagram.value("HopLimit").toUInt();
 	if(hopLimit > 0)
 	  datagram.insert("HopLimit", hopLimit - 1);
 	else
 	  send = false;
+      } else if (datagram.contains("ChatText")) {
+	origins->privateMessage(datagram, sender);
       }
       if(send) {
 	Peer *hop = origins->nextHop(dest);

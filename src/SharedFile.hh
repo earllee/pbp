@@ -13,14 +13,16 @@ private:
   qint64 blocklistSize;
   QByteArray *blocklist;
   QByteArray *blocklistHash;
-  int indexOf(QByteArray);
+  qint64 currentBlock;
 public:
   SharedFile(QString);
-  SharedFile(QByteArray, QByteArray);
+  SharedFile(QString, QByteArray, QByteArray bl = QByteArray());
   ~SharedFile();
   QByteArray blockRequest(QByteArray, QByteArray*);
   QByteArray blockReply(QByteArray, QByteArray);
-  QByteArray meta();
+  QString getFilename();
+  QByteArray getMeta();
+  QByteArray getBlocklist();
 };
 
 #endif

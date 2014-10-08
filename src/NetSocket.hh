@@ -22,7 +22,7 @@ private:
   const quint32 HOPLIMIT;
 public slots:
   void localMessage(QString, QString);
-  void fileMessage(QByteArray, QString);
+  void fileMessage(QString, QByteArray, QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void receiveMessage();
   void addPeer(QString);

@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
 		   &dialog, SLOT(newOrigin(QString)));
   QObject::connect(&dialog, SIGNAL(shareFile(QString)),
 		   &sock, SLOT(shareFile(QString)));
-  QObject::connect(&dialog, SIGNAL(downloadFile(QByteArray, QString)),
-		   &sock, SLOT(fileMessage(QByteArray, QString)));
+  QObject::connect(&dialog, SIGNAL(downloadFile(QString, QByteArray, QString)),
+		   &sock, SLOT(fileMessage(QString, QByteArray, QString)));
 
   foreach(QString s, app.arguments().mid(1)) {
     if(s != "-noforward")

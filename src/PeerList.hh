@@ -36,6 +36,7 @@ public:
   QString myName();
   quint32 mySeqNo();
   void shareFile(QString);
+  void startDownload(QString, QByteArray, QString);
 public slots:
   void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16);

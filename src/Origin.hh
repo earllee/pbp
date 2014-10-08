@@ -41,6 +41,7 @@ public:
   void blockRequest(QVariantMap, Origin*);
   void blockReply(QVariantMap, Origin*);
   void shareFile(QString);
+  void startDownload(QString, QByteArray);
   SharedFile *fileByHash(QByteArray);
 signals:
   void postMessage(QString, QString, QColor, QString);
