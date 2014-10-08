@@ -44,6 +44,10 @@ int main(int argc, char **argv) {
 		   &sock, SLOT(shareFile(QString)));
   QObject::connect(&dialog, SIGNAL(downloadFile(QString, QByteArray, QString)),
 		   &sock, SLOT(fileMessage(QString, QByteArray, QString)));
+  QObject::connect(&dialog, SIGNAL(search(QString)),
+		   &sock, SLOT(searchMessage(QString)));
+  QObject::connect(&sock, SIGNAL(searchReply(QVariantMap)),
+		   &dialog, SLOT(searchReply(QVariantMap)));
 
   foreach(QString s, app.arguments().mid(1)) {
     if(s != "-noforward")

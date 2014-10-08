@@ -28,7 +28,6 @@ private:
   QMap<QByteArray, SharedFile*> *downloads;
   Peer *hop;
   bool direct;
-  const quint32 HOPLIMIT;
 public:
   Origin(QString, Peer*);
   ~Origin();
@@ -43,6 +42,7 @@ public:
   void shareFile(QString);
   void startDownload(QString, QByteArray);
   SharedFile *fileByHash(QByteArray);
+  QList<SharedFile*> searchFiles(QString);
 signals:
   void postMessage(QString, QString, QColor, QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);

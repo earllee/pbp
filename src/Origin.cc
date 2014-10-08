@@ -6,7 +6,9 @@
 #include <QVariant>
 #include <QDebug>
 
-Origin::Origin(QString n, Peer *h) : HOPLIMIT(10) {
+#define HOPLIMIT 10
+
+Origin::Origin(QString n, Peer *h) {
   name = n;
   seqNo = 1;
   latestSeqNo = 0;
@@ -90,6 +92,30 @@ SharedFile *Origin::fileByHash(QByteArray metaHash) {
 
 void Origin::startDownload(QString filename, QByteArray meta) {
   files->insert(meta, new SharedFile(filename, meta));
+}
+
+QList<SharedFile*> Origin::searchFiles(QString query) {
+  QList<SharedFile*> results;
+  QStringList keywords = query.split(" ", QString::SkipEmptyParts);
+  QStringList fileKeywords;
+  bool add;
+  foreach(SharedFile *file, files->values()) {
+    add = false;
+    fileKeywords = file->getFilename().split(" ", QString::SkipEmptyParts);
+    foreach(QString keyword, keywords) {
+      foreach(QString fileKeyword, fileKeywords) {
+	if (keyword == fileKeyword) {
+	  add = true;
+	  break;
+	}
+      }
+      if (add) {
+	results.append(file);
+	break;
+      }
+    }
+  }
+  return results;
 }
 
 void Origin::blockRequest(QVariantMap datagram, Origin *me) {

@@ -8,6 +8,8 @@
 #include <QVector>
 #include <QDebug>
 
+#define HOPLIMIT 10
+
 QVector<QString> POKEMON = QVector<QString>() << "Bulbasaur" << "Ivysaur" << "Venusaur" << "Charmander" << "Charmeleon" << "Charizard" << "Squirtle" << "Wartortle" << "Blastoise" << "Caterpie" << "Metapod" << "Butterfree" << "Weedle" << "Kakuna" << "Beedrill" << "Pidgey" << "Pidgeotto" << "Pidgeot" << "Rattata" << "Raticate" << "Spearow" << "Fearow" << "Ekans" << "Arbok" << "Pikachu" << "Raichu" << "Sandshrew" << "Sandslash" << "Nidoran♀" << "Nidorina" << "Nidoqueen" << "Nidoran♂" << "Nidorino" << "Nidoking" << "Clefairy" << "Clefable" << "Vulpix" << "Ninetales" << "Jigglypuff" << "Wigglytuff" << "Zubat" << "Golbat" << "Oddish" << "Gloom" << "Vileplume" << "Paras" << "Parasect" << "Venonat" << "Venomoth" << "Diglett" << "Dugtrio" << "Meowth" << "Persian" << "Psyduck" << "Golduck" << "Mankey" << "Primeape" << "Growlithe" << "Arcanine" << "Poliwag" << "Poliwhirl" << "Poliwrath" << "Abra" << "Kadabra" << "Alakazam" << "Machop" << "Machoke" << "Machamp" << "Bellsprout" << "Weepinbell" << "Victreebel" << "Tentacool" << "Tentacruel" << "Geodude" << "Graveler" << "Golem" << "Ponyta" << "Rapidash" << "Slowpoke" << "Slowbro" << "Magnemite" << "Magneton" << "Farfetch'd" << "Doduo" << "Dodrio" << "Seel" << "Dewgong" << "Grimer" << "Muk" << "Shellder" << "Cloyster" << "Gastly" << "Haunter" << "Gengar" << "Onix" << "Drowzee" << "Hypno" << "Krabby" << "Kingler" << "Voltorb" << "Electrode" << "Exeggcute" << "Exeggutor" << "Cubone" << "Marowak" << "Hitmonlee" << "Hitmonchan" << "Lickitung" << "Koffing" << "Weezing" << "Rhyhorn" << "Rhydon" << "Chansey" << "Tangela" << "Kangaskhan" << "Horsea" << "Seadra" << "Goldeen" << "Seaking" << "Staryu" << "Starmie" << "Mr. Mime" << "Scyther" << "Jynx" << "Electabuzz" << "Magmar" << "Pinsir" << "Tauros" << "Magikarp" << "Gyarados" << "Lapras" << "Ditto" << "Eevee" << "Vaporeon" << "Jolteon" << "Flareon" << "Porygon" << "Omanyte" << "Omastar" << "Kabuto" << "Kabutops" << "Aerodactyl" << "Snorlax" << "Articuno" << "Zapdos" << "Moltres" << "Dratini" << "Dragonair" << "Dragonite" << "Mewtwo" << "Mew";
 
 QVector<QString> PERSONALITIES = QVector<QString>() << "Hardy" << "Lonely" << "Brave" << "Adamant" << "Naughty" << "Bold" << "Docile" << "Relaxed" << "Impish" << "Lax" << "Timid" << "Hasty" << "Serious" << "Jolly" << "Naive" << "Modest" << "Mild" << "Quiet" << "Bashful" << "Rash" << "Calm" << "Gentle" << "Sassy" << "Careful" << "Quirky";
@@ -131,6 +133,20 @@ void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
     if (!o)
       o = add(from, sender);
     o->blockReply(datagram, me);
+  } else if (datagram.contains("SearchReply")) {
+    o = get(from);
+    if (!o)
+      o = add(from, sender);
+    QVariantList filenames = datagram.value("MatchNames").toList();
+    QVariantList ids = datagram.value("MatchIDs").toList();
+    int len = filenames.size();
+    for (int i = 0; i < len; i++) {
+      QVariantMap reply;
+      reply.insert("Filename", filenames.at(i));
+      reply.insert("ID", filenames.at(i));
+      reply.insert("Origin", QVariant(from));
+      emit searchReply(reply);
+    }
   } else {
     QString chatbox;
     if (from == myName()) {
@@ -146,11 +162,34 @@ void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
   }
 }
 
-Peer *OriginList::nextHop(QString dest) {
+void OriginList::searchMessage(QVariantMap datagram, Peer *sender) {
+  QString from = datagram.value("Origin").toString();
+  Origin *o = get(from);
+  if (!o)
+    o = add(from, sender);
+  QString query = datagram.value("Search").toString();
+  QList<SharedFile*> files = me->searchFiles(query);
+  QVariantList filenames, ids;
+  foreach(SharedFile *file, files) {
+    filenames.append(QVariant(file->getFilename()));
+    ids.append(QVariant(file->getMeta()));
+  }
+  QVariantMap datagram;
+  datagram.insert("Dest", QVariant(from));
+  datagram.insert("Origin", QVariant(me->getName()));
+  datagram.insert("HopLimit", QVariant(HOPLIMIT));
+  datagram.insert("SearchReply", QVariant(query));
+  datagram.insert("MatchNames", QVariant(filenames));
+  datagram.insert("MatchIDs", QVariant(ids));
+  send(from, datagram);
+}
+
+void OriginList::send(QString dest, QVariantMap datagram) {
   Origin *o = get(dest);
   if (!o)
-    return NULL;
-  return o->getHop();
+    return;
+  Peer *hop = o->getHop();
+  emit sendMessage(hop->getHost(), hop->getPort(), datagram);
 }
 
 void OriginList::shareFile(QString filename) {

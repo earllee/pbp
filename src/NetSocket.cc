@@ -11,7 +11,10 @@
 #include <QDataStream>
 #include <QHostInfo>
 
-NetSocket::NetSocket() : HOPLIMIT(10) {
+#define HOPLIMIT 10
+#define INITBUDGET 2
+
+NetSocket::NetSocket() {
   // Pick a range of four UDP ports to try to allocate by default,
   // computed based on my Unix user ID.
   // This makes it trivial for up to four Peerster instances per user
@@ -47,6 +50,8 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(postMessage(QString, QString, QColor, QString)));
       connect(peers, SIGNAL(newOrigin(QString)),
 	      this, SIGNAL(newOrigin(QString)));
+      connect(peers, SIGNAL(searchReply(QVariantMap)),
+	      this, SIGNAL(searchReply(QVariantMap)));
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       routeTimer->start();
@@ -100,6 +105,14 @@ void NetSocket::fileMessage(QString filename, QByteArray hash, QString dest) {
   datagram.insert("Dest", QVariant(dest));
   datagram.insert("HopLimit", QVariant(HOPLIMIT));
   datagram.insert("BlockRequest", QVariant(hash));
+  peers->newMessage(peers->myHost(), peers->myPort(), datagram);
+}
+
+void NetSocket::searchMessage(QString search) {
+  QVariantMap datagram;
+  datagram.insert("Origin", QVariant(peers->myName()));
+  datagram.insert("Search", QVariant(search));
+  datagram.insert("Budget", QVariant(INITBUDGET));
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 

@@ -31,12 +31,22 @@ PeerList::PeerList(quint16 port, bool nf) {
 	  this, SIGNAL(newOrigin(QString)));
   connect(origins, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
+  connect(origins, SIGNAL(searchReply(QVariantMap)),
+	  this, SLOT(gotSearchReply(QVariantMap)));
 
   entropyTimer = new QTimer(this);
   entropyTimer->setInterval(10000);
   connect(entropyTimer, SIGNAL(timeout()),
 	  this, SLOT(antiEntropy()));
   entropyTimer->start();
+
+  searchTimer = new QTimer(this);
+  searchTimer->setInterval(1000);
+  connect(searchTimer, SIGNAL(timeout()),
+	  this, SLOT(expandSearch())); 
+  currentQuery = QString();
+  currentBudget = 0;
+  nResults = 0;
 
   nofwd = nf;
 }
@@ -96,7 +106,11 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
   if(sender != me)
     sender->makeConnection();
 
-  if(datagram.contains("Dest")) {
+  if (datagram.contains("Search")) {
+    if (nofwd)
+      return;
+    handleSearch(datagram, sender);
+  } else if(datagram.contains("Dest")) {
     if (nofwd)
       return;
     handlePrivate(datagram, sender);
@@ -109,27 +123,78 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
   }
 }
 
+void PeerList::handleSearch(QVariantMap datagram, Peer *sender) {
+  QString origin = datagram.value("Origin").toString();
+  quint32 budget;
+  if (origin == myName()) {
+    currentQuery = datagram;
+    nResults = 0;
+    currentBudget = datagram.value("Budget").toUInt();
+    budget = currentBudget;
+    searchTimer->start();
+  } else {
+    origins->searchMessage(datagram, sender);
+    budget = datagram.value("Budget").toUInt() - 1;
+    if (budget <= 0)
+      return;
+  }
+
+  propogateSearch(datagram, budget);
+}
+
+void PeerList::gotSearchReply(QVariantMap reply) {
+  if (++nResults >= 10)
+    searchTimer->stop();
+  emit searchReply(reply);
+}
+
+void PeerList::expandSearch() {
+  currentBudget = currentBudget * 2;
+  if (currentBudget >= 100) {
+    searchTimer->stop();
+    return;
+  }
+  propogateSearch(currentQuery, currentBudget);
+}
+
+void PeerList::propogateSearch(QVariantMap datagram, quint32 budget) {
+  if (budget >= peers->size()) {
+    QList<Peer*> recipients = peers->values();
+    int nRecipients = recipients.size();
+    if (nRecipients == 0)
+      return;
+    quint32 newBudget = budget / nRecipients;
+    quint32 extra = budget % nRecipients;
+    datagram.insert("Budget", QVariant(newBudget + 1));
+    foreach (Peer *recipient, recipients) {
+      if (extra-- == 0) // use up the extra budget
+	datagram.insert("Budget", QVariant(newBudget));
+      emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
+    }
+  } else {
+    QList<Peer*> recipients = randoms(budget);
+    datagram.insert("Budget", QVariant(1));
+    foreach (Peer *recipient, recipients) {
+      emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
+    }
+  }
+}
+
 void PeerList::handlePrivate(QVariantMap datagram, Peer *sender) {
     QString dest = datagram.value("Dest").toString();
     QString origin = datagram.value("Origin").toString();
-    if(dest == myName()) {
+    if (dest == myName()) {
       origins->privateMessage(datagram, sender);
     } else {
-      bool send = true;
       if(origin != myName()) {
-	quint32 hopLimit = datagram.value("HopLimit").toUInt();
-	if(hopLimit > 0)
-	  datagram.insert("HopLimit", hopLimit - 1);
-	else
-	  send = false;
+	quint32 hopLimit = datagram.value("HopLimit").toUInt() - 1;
+	if(hopLimit <= 0)
+	  return;
+	datagram.insert("HopLimit", hopLimit);
       } else if (datagram.contains("ChatText")) {
 	origins->privateMessage(datagram, sender);
       }
-      if(send) {
-	Peer *hop = origins->nextHop(dest);
-	if(hop)
-	  emit sendMessage(hop->getHost(), hop->getPort(), datagram);
-      }
+      origins->send(dest, datagram);
     }
 }
 
@@ -197,6 +262,15 @@ Peer *PeerList::random() {
   } else {
     return NULL;
   }
+}
+
+QList<Peer*> PeerList::randoms(quint32 n) {
+  QList<Peer*> values = peers->values();
+  int nPeers;
+  // assume values.size() is initially larger than n
+  while ((nPeers = values.size()) > n)
+    values.removeAt(qrand() % nPeers); // remove until n peers left
+  return values;
 }
 
 void PeerList::rumor(QVariantMap datagram, bool broadcast) {

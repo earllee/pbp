@@ -17,8 +17,15 @@ private:
   QMap<QString, Peer*> *peers;
   OriginList *origins;
   QTimer *entropyTimer;
+  QVariantMap currentQuery;
+  quint32 currentBudget;
+  quint32 nResults;
+  QTimer *searchTimer;
   Peer *get(QHostAddress, quint16);
   Peer *random();
+  QList<Peer*> randoms();
+  void propagateSearch(QVariantMap, quint32);
+  void handleSearch(QVariantMap, Peer*);
   void handlePrivate(QVariantMap, Peer*);
   void handleStatus(QVariantMap, Peer*);
   void handleRumor(QVariantMap, Peer*);
@@ -41,10 +48,13 @@ public slots:
   void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16);
   void antiEntropy();
+  void gotSearchReply(QVariantMap);
+  void expandSearch();
 signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void postMessage(QString, QString, QColor, QString);
   void newOrigin(QString);
+  void searchReply(QVariantMap);
 };
 
 #endif
