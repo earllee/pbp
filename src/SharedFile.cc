@@ -36,8 +36,9 @@ SharedFile::SharedFile(QString fn) {
   qDebug() << "New shared file hash" << blocklistHash->toHex();
 }
 
-SharedFile::SharedFile(QString f, QByteArray meta, QByteArray bl) {
-  filename = f;
+SharedFile::SharedFile(QString f, QString fn, QByteArray meta, QByteArray bl) {
+  from = f;
+  filename = fn;
   blocklist = new QByteArray(bl);
   blocklistHash = new QByteArray(meta);
   blocklistSize = blocklist->size();

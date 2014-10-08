@@ -47,7 +47,7 @@ private:
   QListWidget *sharingResults;
   QGridLayout *sharingLayout;
   QGridLayout *layout;
-  QMap<QString, QVariantMap> *results;
+  QMap<QByteArray, QVariantMap> *results;
 };
 
 #endif

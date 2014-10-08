@@ -54,7 +54,7 @@ ChatDialog::ChatDialog(bool nofwd) {
   sharingLayout->addWidget(sharingSearch, 1, 2, 1, 1);
   sharingLayout->addWidget(sharingResults, 2, 0, 1, -1);
   
-  results = new QMap<QString, QVariantMap>();
+  results = new QMap<QByteArray, QVariantMap>();
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
@@ -150,15 +150,14 @@ void ChatDialog::initiateSearch() {
 }
 
 void ChatDialog::searchReply(QVariantMap reply) {
-  QString key = QString("%1 (%2)")
-    .arg(reply.value("Filename").toString())
-    .arg(reply.value("Origin").toString());
-  results->insert(key, reply);
-  sharingResults->addItem(key);
+  results->insert(reply.value("ID").toByteArray(), reply);
+  sharingResults->addItem(reply.value("Filename").toString());
+  QListWidgetItem *widget = sharingResults->item(sharingResults->count() - 1);
+  widget->setData(Qt::UserRole, reply.value("ID"));
 }
 
 void ChatDialog::startDownload(QListWidgetItem *item) {
-  QVariantMap reply = results->value(item->text());
+  QVariantMap reply = results->value(item->data(Qt::UserRole).toByteArray());
   emit downloadFile(reply.value("Filename").toString(),
 		    reply.value("ID").toByteArray(),
 		    reply.value("Origin").toString());

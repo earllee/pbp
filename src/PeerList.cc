@@ -46,7 +46,7 @@ PeerList::PeerList(quint16 port, bool nf) {
 	  this, SLOT(expandSearch())); 
   currentQuery = QVariantMap();
   currentBudget = 0;
-  results = new QMap<QString, bool>();
+  results = new QMap<QByteArray, bool>();
 
   nofwd = nf;
 }
@@ -144,10 +144,7 @@ void PeerList::handleSearch(QVariantMap datagram, Peer *sender) {
 }
 
 void PeerList::gotSearchReply(QVariantMap reply) {
-  QString key = QString("%1 (%2)")
-    .arg(reply.value("Filename").toString())
-    .arg(reply.value("Origin").toString());
-
+  QByteArray key = reply.value("ID").toByteArray();
   if (reply.value("SearchReply").toString() == currentQuery.value("Search").toString()
       && !results->contains(key)) {
     results->insert(key, true);

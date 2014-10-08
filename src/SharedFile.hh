@@ -17,7 +17,7 @@ private:
   QString from;
 public:
   SharedFile(QString);
-  SharedFile(QString, QByteArray, QByteArray bl = QByteArray());
+  SharedFile(QString, QString, QByteArray, QByteArray bl = QByteArray());
   ~SharedFile();
   QByteArray blockRequest(QByteArray, QByteArray*);
   QByteArray blockReply(QByteArray, QByteArray);

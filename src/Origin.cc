@@ -92,7 +92,7 @@ SharedFile *Origin::fileByHash(QByteArray metaHash) {
 }
 
 void Origin::startDownload(QString filename, QByteArray meta) {
-  files->insert(meta, new SharedFile(filename, meta));
+  files->insert(meta, new SharedFile(name, filename, meta));
 }
 
 QList<SharedFile*> Origin::searchFiles(QString query) {
@@ -126,7 +126,7 @@ void Origin::blockRequest(QVariantMap datagram, Origin *me) {
     SharedFile *fileToDl = me->fileByHash(blockHash);
     if (!fileToDl)
       return;
-    file = new SharedFile(fileToDl->getFilename(), fileToDl->getMeta(), fileToDl->getBlocklist());
+    file = new SharedFile(name, fileToDl->getFilename(), fileToDl->getMeta(), fileToDl->getBlocklist());
   }
   QByteArray next;
   QByteArray data = file->blockRequest(blockHash, &next);

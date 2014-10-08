@@ -19,7 +19,7 @@ private:
   QTimer *entropyTimer;
   QVariantMap currentQuery;
   quint32 currentBudget;
-  QMap<QString, bool> *results;
+  QMap<QByteArray, bool> *results;
   QTimer *searchTimer;
   Peer *get(QHostAddress, quint16);
   Peer *random();
