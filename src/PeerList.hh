@@ -19,11 +19,11 @@ private:
   QTimer *entropyTimer;
   QVariantMap currentQuery;
   quint32 currentBudget;
-  quint32 nResults;
+  QMap<QString, bool> *results;
   QTimer *searchTimer;
   Peer *get(QHostAddress, quint16);
   Peer *random();
-  QList<Peer*> randoms();
+  QList<Peer*> randoms(quint32);
   void propagateSearch(QVariantMap, quint32);
   void handleSearch(QVariantMap, Peer*);
   void handlePrivate(QVariantMap, Peer*);

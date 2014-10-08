@@ -13,7 +13,7 @@
 
 SharedFile::SharedFile(QString fn) {
   filename = fn;
-  QFile file(filename);
+  QFile file(fn);
   file.open(QIODevice::ReadOnly);
   fileSize = file.size();
   blocklistSize = (fileSize % BLOCKSIZE) ?
@@ -85,6 +85,7 @@ QByteArray SharedFile::blockReply(QByteArray blockHash, QByteArray data) {
   QFile file(loc);
   file.open(QIODevice::ReadWrite | QIODevice::Append);
   file.write(data);
+  qDebug() << "write";
   if (currentBlock + 1 < blocklistSize / HASHSIZE) {
     currentBlock++;
     return blocklist->mid(currentBlock + HASHSIZE, HASHSIZE);

@@ -23,6 +23,8 @@ public:
   QString getFilename();
   QByteArray getMeta();
   QByteArray getBlocklist();
+signals:
+  void downloadProgress(QByteArray, quint16);
 };
 
 #endif

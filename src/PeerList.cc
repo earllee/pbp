@@ -44,9 +44,9 @@ PeerList::PeerList(quint16 port, bool nf) {
   searchTimer->setInterval(1000);
   connect(searchTimer, SIGNAL(timeout()),
 	  this, SLOT(expandSearch())); 
-  currentQuery = QString();
+  currentQuery = QVariantMap();
   currentBudget = 0;
-  nResults = 0;
+  results = new QMap<QString, bool>();
 
   nofwd = nf;
 }
@@ -126,9 +126,10 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram)
 void PeerList::handleSearch(QVariantMap datagram, Peer *sender) {
   QString origin = datagram.value("Origin").toString();
   quint32 budget;
-  if (origin == myName()) {
+  if (origin == myName()
+      && datagram.value("Search").toString() != currentQuery.value("Search").toString()) {
     currentQuery = datagram;
-    nResults = 0;
+    results->clear();
     currentBudget = datagram.value("Budget").toUInt();
     budget = currentBudget;
     searchTimer->start();
@@ -139,13 +140,21 @@ void PeerList::handleSearch(QVariantMap datagram, Peer *sender) {
       return;
   }
 
-  propogateSearch(datagram, budget);
+  propagateSearch(datagram, budget);
 }
 
 void PeerList::gotSearchReply(QVariantMap reply) {
-  if (++nResults >= 10)
-    searchTimer->stop();
-  emit searchReply(reply);
+  QString key = QString("%1 (%2)")
+    .arg(reply.value("Filename").toString())
+    .arg(reply.value("Origin").toString());
+
+  if (reply.value("SearchReply").toString() == currentQuery.value("Search").toString()
+      && !results->contains(key)) {
+    results->insert(key, true);
+    if (results->size() >= 10)
+      searchTimer->stop();
+    emit searchReply(reply);
+  }
 }
 
 void PeerList::expandSearch() {
@@ -154,11 +163,11 @@ void PeerList::expandSearch() {
     searchTimer->stop();
     return;
   }
-  propogateSearch(currentQuery, currentBudget);
+  propagateSearch(currentQuery, currentBudget);
 }
 
-void PeerList::propogateSearch(QVariantMap datagram, quint32 budget) {
-  if (budget >= peers->size()) {
+void PeerList::propagateSearch(QVariantMap datagram, quint32 budget) {
+  if (budget >= (quint32) peers->size()) {
     QList<Peer*> recipients = peers->values();
     int nRecipients = recipients.size();
     if (nRecipients == 0)
@@ -268,7 +277,7 @@ QList<Peer*> PeerList::randoms(quint32 n) {
   QList<Peer*> values = peers->values();
   int nPeers;
   // assume values.size() is initially larger than n
-  while ((nPeers = values.size()) > n)
+  while ((quint32) (nPeers = values.size()) > n)
     values.removeAt(qrand() % nPeers); // remove until n peers left
   return values;
 }

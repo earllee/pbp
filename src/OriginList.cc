@@ -6,6 +6,7 @@
 #include <QTime>
 #include <QColor>
 #include <QVector>
+#include <QFileInfo>
 #include <QDebug>
 
 #define HOPLIMIT 10
@@ -143,8 +144,9 @@ void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
     for (int i = 0; i < len; i++) {
       QVariantMap reply;
       reply.insert("Filename", filenames.at(i));
-      reply.insert("ID", filenames.at(i));
+      reply.insert("ID", ids.at(i));
       reply.insert("Origin", QVariant(from));
+      reply.insert("SearchReply", datagram.value("SearchReply"));
       emit searchReply(reply);
     }
   } else {
@@ -171,17 +173,17 @@ void OriginList::searchMessage(QVariantMap datagram, Peer *sender) {
   QList<SharedFile*> files = me->searchFiles(query);
   QVariantList filenames, ids;
   foreach(SharedFile *file, files) {
-    filenames.append(QVariant(file->getFilename()));
+    filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
     ids.append(QVariant(file->getMeta()));
   }
-  QVariantMap datagram;
-  datagram.insert("Dest", QVariant(from));
-  datagram.insert("Origin", QVariant(me->getName()));
-  datagram.insert("HopLimit", QVariant(HOPLIMIT));
-  datagram.insert("SearchReply", QVariant(query));
-  datagram.insert("MatchNames", QVariant(filenames));
-  datagram.insert("MatchIDs", QVariant(ids));
-  send(from, datagram);
+  QVariantMap reply;
+  reply.insert("Dest", QVariant(from));
+  reply.insert("Origin", QVariant(me->getName()));
+  reply.insert("HopLimit", QVariant(HOPLIMIT));
+  reply.insert("SearchReply", QVariant(query));
+  reply.insert("MatchNames", QVariant(filenames));
+  reply.insert("MatchIDs", QVariant(ids));
+  send(from, reply);
 }
 
 void OriginList::send(QString dest, QVariantMap datagram) {

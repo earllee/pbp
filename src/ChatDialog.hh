@@ -25,8 +25,9 @@ public slots:
   void newOrigin(QString);
   void openTab(QListWidgetItem*);
   void openFileDialog();
-  void openDownloadDialog();
   void searchReply(QVariantMap);
+  void initiateSearch();
+  void startDownload(QListWidgetItem*);
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
@@ -39,8 +40,14 @@ private:
   QLineEdit *peerInput;
   QListWidget *originSelect;
   QTabWidget *tabs;
-  QPushButton *fileButton;
-  QPushButton *downloadButton;
+  QGroupBox *sharingBox;
+  QPushButton *sharingButton;
+  QPushButton *sharingSearch;
+  QLineEdit *sharingInput;
+  QListWidget *sharingResults;
+  QGridLayout *sharingLayout;
+  QGridLayout *layout;
+  QMap<QString, QVariantMap> *results;
 };
 
 #endif

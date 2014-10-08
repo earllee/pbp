@@ -25,7 +25,8 @@ public:
   QString myName();
   Origin *add(QString, Peer*);
   void privateMessage(QVariantMap, Peer*);
-  void send(QString, QVariantMapo);
+  void searchMessage(QVariantMap, Peer*);
+  void send(QString, QVariantMap);
   void shareFile(QString);
   void startDownload(QString, QByteArray, QString);
 signals:

@@ -20,6 +20,8 @@ ChatDialog::ChatDialog(bool nofwd) {
 
   peerInput = new QLineEdit(this);
   peerInput->setPlaceholderText("Add a peer");
+  connect(peerInput, SIGNAL(returnPressed()),
+	  this, SLOT(newPeer()));
 
   originSelect = new QListWidget(this);
   connect(originSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
@@ -31,18 +33,32 @@ ChatDialog::ChatDialog(bool nofwd) {
   connect(broadcast, SIGNAL(newMessage(QString, QString)),
 	  this, SIGNAL(newMessage(QString, QString)));
 
-  fileButton = new QPushButton("Share file(s)", this);
-  connect(fileButton, SIGNAL(clicked()),
+  sharingBox = new QGroupBox(this);
+  sharingBox->setFlat(true);
+  sharingButton = new QPushButton("Share file(s)", sharingBox);
+  connect(sharingButton, SIGNAL(clicked()),
 	  this, SLOT(openFileDialog()));
-
-  downloadButton = new QPushButton("Download a file", this);
-  connect(downloadButton, SIGNAL(clicked()),
-	  this, SLOT(openDownloadDialog()));
+  sharingInput = new QLineEdit(sharingBox);
+  sharingInput->setPlaceholderText("Search for files");
+  connect(sharingInput, SIGNAL(returnPressed()),
+	  this, SLOT(initiateSearch()));
+  sharingSearch = new QPushButton("Search", sharingBox);
+  connect(sharingSearch, SIGNAL(clicked()),
+	  this, SLOT(initiateSearch()));
+  sharingResults = new QListWidget(sharingBox);
+  connect(sharingResults, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+	  this, SLOT(startDownload(QListWidgetItem*)));
+  sharingLayout = new QGridLayout(sharingBox);
+  sharingLayout->addWidget(sharingButton, 0, 0, 1, -1);
+  sharingLayout->addWidget(sharingInput, 1, 0, 1, 2);
+  sharingLayout->addWidget(sharingSearch, 1, 2, 1, 1);
+  sharingLayout->addWidget(sharingResults, 2, 0, 1, -1);
   
+  results = new QMap<QString, QVariantMap>();
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
-  QGridLayout *layout = new QGridLayout(this);
+  layout = new QGridLayout(this);
   QLabel *label = new QLabel(this);
   label->setText("Origin List");
   if (nofwd) {
@@ -50,16 +66,12 @@ ChatDialog::ChatDialog(bool nofwd) {
     layout->addWidget(originSelect, 1, 0);
     layout->addWidget(peerInput, 2, 0);
   } else {
+    layout->addWidget(tabs, 0, 0, 3, 1);
     layout->addWidget(label, 0, 1);
     layout->addWidget(originSelect, 1, 1);
     layout->addWidget(peerInput, 2, 1);
-    layout->addWidget(fileButton, 3, 1);
-    layout->addWidget(downloadButton, 4, 1);
-    layout->addWidget(tabs, 0, 0, -1, 1);
+    layout->addWidget(sharingBox, 3, 0, 1, -1);
   }
-
-  connect(peerInput, SIGNAL(returnPressed()),
-	  this, SLOT(newPeer()));
 
   broadcast->focus();
 }
@@ -127,16 +139,27 @@ void ChatDialog::openFileDialog() {
   }
 }
 
-void ChatDialog::openDownloadDialog() {
-  bool ok;
-  QString origin, hash;
-  origin = QInputDialog::getText(this, "Download a file", "Origin",
-				 QLineEdit::Normal, QString(), &ok);
-  if (!ok || origin.isEmpty())
+void ChatDialog::initiateSearch() {
+  QString query = sharingInput->text();
+  if (query.isEmpty())
     return;
-  hash = QInputDialog::getText(this, "Download a file", "Metafile hash",
-			       QLineEdit::Normal, QString(), &ok);
-  if (!ok || hash.isEmpty())
-    return;
-  emit downloadFile("derp", QByteArray::fromHex(hash.toUtf8()), origin);
+  sharingInput->clear();
+  results->clear();
+  sharingResults->clear();
+  emit search(query);
+}
+
+void ChatDialog::searchReply(QVariantMap reply) {
+  QString key = QString("%1 (%2)")
+    .arg(reply.value("Filename").toString())
+    .arg(reply.value("Origin").toString());
+  results->insert(key, reply);
+  sharingResults->addItem(key);
+}
+
+void ChatDialog::startDownload(QListWidgetItem *item) {
+  QVariantMap reply = results->value(item->text());
+  emit downloadFile(reply.value("Filename").toString(),
+		    reply.value("ID").toByteArray(),
+		    reply.value("Origin").toString());
 }

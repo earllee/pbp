@@ -28,7 +28,6 @@ public slots:
   void addPeer(QString);
   void routeRumor();
   void shareFile(QString);
-  void searchMessage(QString);
 signals:
   void postMessage(QString, QString, QColor, QString);
   void newOrigin(QString);
