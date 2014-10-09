@@ -162,3 +162,11 @@ void ChatDialog::startDownload(QListWidgetItem *item) {
 		    reply.value("ID").toByteArray(),
 		    reply.value("Origin").toString());
 }
+
+void ChatDialog::receivedBlocklist(QByteArray id, qint64 block) {
+  qDebug() << "received blocklist with" << block << "blocks";
+}
+
+void ChatDialog::receivedBlock(QByteArray id, qint64 block) {
+  qDebug() << "received block" << block;
+}

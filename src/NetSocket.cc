@@ -52,6 +52,10 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(newOrigin(QString)));
       connect(peers, SIGNAL(searchReply(QVariantMap)),
 	      this, SIGNAL(searchReply(QVariantMap)));
+      connect(peers, SIGNAL(receivedBlocklist(QByteArray, qint64)),
+	      this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
+      connect(peers, SIGNAL(receivedBlock(QByteArray, qint64)),
+	      this, SIGNAL(receivedBlock(QByteArray, qint64)));
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       routeTimer->start();

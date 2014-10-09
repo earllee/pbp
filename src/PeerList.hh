@@ -55,6 +55,8 @@ signals:
   void postMessage(QString, QString, QColor, QString);
   void newOrigin(QString);
   void searchReply(QVariantMap);
+  void receivedBlocklist(QByteArray, qint64);
+  void receivedBlock(QByteArray, qint64);
 };
 
 #endif

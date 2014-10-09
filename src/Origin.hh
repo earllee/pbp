@@ -46,6 +46,8 @@ public:
 signals:
   void postMessage(QString, QString, QColor, QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
+  void receivedBlocklist(QByteArray, qint64);
+  void receivedBlock(QByteArray, qint64);
 };
 
 #endif

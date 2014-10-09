@@ -33,6 +33,10 @@ PeerList::PeerList(quint16 port, bool nf) {
 	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
   connect(origins, SIGNAL(searchReply(QVariantMap)),
 	  this, SLOT(gotSearchReply(QVariantMap)));
+  connect(origins, SIGNAL(receivedBlocklist(QByteArray, qint64)),
+	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
+  connect(origins, SIGNAL(receivedBlock(QByteArray, qint64)),
+	  this, SIGNAL(receivedBlock(QByteArray, qint64)));
 
   entropyTimer = new QTimer(this);
   entropyTimer->setInterval(10000);

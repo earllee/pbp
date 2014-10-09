@@ -28,6 +28,8 @@ public slots:
   void searchReply(QVariantMap);
   void initiateSearch();
   void startDownload(QListWidgetItem*);
+  void receivedBlocklist(QByteArray, qint64);
+  void receivedBlock(QByteArray, qint64);
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);

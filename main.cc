@@ -48,6 +48,10 @@ int main(int argc, char **argv) {
 		   &sock, SLOT(searchMessage(QString)));
   QObject::connect(&sock, SIGNAL(searchReply(QVariantMap)),
 		   &dialog, SLOT(searchReply(QVariantMap)));
+  QObject::connect(&sock, SIGNAL(receivedBlocklist(QByteArray, qint64)),
+		   &dialog, SLOT(receivedBlocklist(QByteArray, qint64)));
+  QObject::connect(&sock, SIGNAL(receivedBlock(QByteArray, qint64)),
+		   &dialog, SLOT(receivedBlock(QByteArray, qint64)));
 
   foreach(QString s, app.arguments().mid(1)) {
     if(s != "-noforward")

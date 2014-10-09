@@ -34,10 +34,10 @@ SharedFile::SharedFile(QString fn) {
   blocklistHash = new QByteArray(sha1.final().toByteArray());
   currentBlock = 0;
   qDebug() << "New shared file hash" << blocklistHash->toHex();
+  qDebug() << "Number of blocks" << blocklistSize / HASHSIZE;
 }
 
-SharedFile::SharedFile(QString f, QString fn, QByteArray meta, QByteArray bl) {
-  from = f;
+SharedFile::SharedFile(QString fn, QByteArray meta, QByteArray bl) {
   filename = fn;
   blocklist = new QByteArray(bl);
   blocklistHash = new QByteArray(meta);
@@ -59,14 +59,14 @@ QByteArray SharedFile::blockRequest(QByteArray blockHash, QByteArray *next) {
 
   if (blockHash != blocklist->mid(currentBlock * HASHSIZE, HASHSIZE))
     return QByteArray();
-  if (currentBlock + 1 < blocklistSize / HASHSIZE)
-    *next = blocklist->mid((currentBlock + 1) * HASHSIZE, HASHSIZE);
-  else
-    *next = QByteArray();
   QFile file(filename);
   file.open(QIODevice::ReadOnly);
   file.seek(currentBlock * BLOCKSIZE);
   currentBlock++;
+  if (currentBlock < blocklistSize / HASHSIZE)
+    *next = blocklist->mid(currentBlock * HASHSIZE, HASHSIZE);
+  else
+    *next = QByteArray();
   return file.read(BLOCKSIZE);
 }
 
@@ -74,6 +74,9 @@ QByteArray SharedFile::blockReply(QByteArray blockHash, QByteArray data) {
   // receiving blockfile
   if (blocklist->isEmpty() && blockHash == *blocklistHash) {
     blocklist = new QByteArray(data);
+    blocklistSize = blocklist->size();
+    qDebug() << "New file download, number of blocks" << blocklistSize / HASHSIZE;
+    emit receivedBlocklist(*blocklistHash, blocklistSize / HASHSIZE);
     return blocklist->left(HASHSIZE);
   }
 
@@ -84,11 +87,15 @@ QByteArray SharedFile::blockReply(QByteArray blockHash, QByteArray data) {
 
   QString loc = QString("%1/%2").arg(QDir::currentPath()).arg(filename);
   QFile file(loc);
-  file.open(QIODevice::ReadWrite | QIODevice::Append);
+  if (currentBlock == 0)
+    file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+  else
+    file.open(QIODevice::ReadWrite | QIODevice::Append);
   file.write(data);
   currentBlock++;
+  emit receivedBlock(*blocklistHash, currentBlock);
   if (currentBlock < blocklistSize / HASHSIZE)
-    return blocklist->mid(currentBlock + HASHSIZE, HASHSIZE);
+    return blocklist->mid(currentBlock * HASHSIZE, HASHSIZE);
   else
     return QByteArray();
 }

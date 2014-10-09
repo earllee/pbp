@@ -34,6 +34,8 @@ signals:
   void newOrigin(QString);
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void searchReply(QVariantMap);
+  void receivedBlocklist(QByteArray, qint64);
+  void receivedBlock(QByteArray, qint64);
 };
 
 #endif

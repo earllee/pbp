@@ -46,6 +46,10 @@ Origin *OriginList::add(QString name, Peer *sender) {
 	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
   connect(o, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
+  connect(me, SIGNAL(receivedBlocklist(QByteArray, qint64)),
+	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
+  connect(me, SIGNAL(receivedBlock(QByteArray, qint64)),
+	  this, SIGNAL(receivedBlock(QByteArray, qint64)));
   origins->insert(name, o);
   emit newOrigin(name);
   return o;

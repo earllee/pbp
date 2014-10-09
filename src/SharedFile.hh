@@ -14,10 +14,9 @@ private:
   QByteArray *blocklist;
   QByteArray *blocklistHash;
   qint64 currentBlock;
-  QString from;
 public:
   SharedFile(QString);
-  SharedFile(QString, QString, QByteArray, QByteArray bl = QByteArray());
+  SharedFile(QString, QByteArray, QByteArray bl = QByteArray());
   ~SharedFile();
   QByteArray blockRequest(QByteArray, QByteArray*);
   QByteArray blockReply(QByteArray, QByteArray);
@@ -25,7 +24,8 @@ public:
   QByteArray getMeta();
   QByteArray getBlocklist();
 signals:
-  void downloadProgress(QByteArray, quint16);
+  void receivedBlocklist(QByteArray, qint64);
+  void receivedBlock(QByteArray, qint64);
 };
 
 #endif
