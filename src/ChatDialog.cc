@@ -1,6 +1,7 @@
 #include <unistd.h>
 
 #include <ChatDialog.hh>
+#include <DownloadBox.hh>
 #include <ChatTab.hh>
 #include <SharedFile.hh>
 #include <QColor>
@@ -57,6 +58,7 @@ ChatDialog::ChatDialog(bool nofwd) {
   sharingLayout->addWidget(sharingButton, 0, 3, 1, 2);
   sharingLayout->addWidget(sharingResults, 1, 0, 1, 3);
   sharingLayout->addWidget(sharingFiles, 1, 3, 1, 2);
+  downloads = new QMap<QByteArray, DownloadBox*>();
   
   results = new QMap<QByteArray, QVariantMap>();
   // Lay out the widgets to appear in the main window.
@@ -88,6 +90,19 @@ ChatDialog::~ChatDialog() {
     delete c;
   }
   delete chats;
+  delete sharingBox;
+  delete sharingButton;
+  delete sharingSearch;
+  delete sharingInput;
+  delete sharingResults;
+  delete sharingFiles;
+  delete sharingLayout;
+  delete layout;
+  delete results;
+  foreach(DownloadBox *d, downloads->values()) {
+    delete d;
+  }
+  delete downloads;
 }
 
 void ChatDialog::postMessage(QString name, QString msg, QColor color, QString dest) {
@@ -162,16 +177,20 @@ void ChatDialog::searchReply(QVariantMap reply) {
 }
 
 void ChatDialog::startDownload(QListWidgetItem *item) {
+
   QVariantMap reply = results->value(item->data(Qt::UserRole).toByteArray());
+  DownloadBox *d = new DownloadBox(reply.value("Filename").toString());
+  downloads->insert(reply.value("ID").toByteArray(), d);
+  sharingLayout->addWidget(d, sharingLayout->rowCount(), 0, 1, -1);
   emit downloadFile(reply.value("Filename").toString(),
 		    reply.value("ID").toByteArray(),
 		    reply.value("Origin").toString());
 }
 
 void ChatDialog::receivedBlocklist(QByteArray id, qint64 block) {
-  qDebug() << "received blocklist with" << block << "blocks";
+  downloads->value(id)->max(block);
 }
 
 void ChatDialog::receivedBlock(QByteArray id, qint64 block) {
-  qDebug() << "received block" << block;
+  downloads->value(id)->update(block);
 }

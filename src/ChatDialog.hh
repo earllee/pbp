@@ -8,6 +8,7 @@
 #include <QColor>
 #include <ChatTab.hh>
 #include <ChatQTextEdit.hh>
+#include <DownloadBox.hh>
 #include <QPushButton>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -51,6 +52,7 @@ private:
   QGridLayout *sharingLayout;
   QGridLayout *layout;
   QMap<QByteArray, QVariantMap> *results;
+  QMap<QByteArray, DownloadBox*> *downloads;
 };
 
 #endif
