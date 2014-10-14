@@ -38,6 +38,8 @@ ChatDialog::ChatDialog(bool nofwd) {
   sharingButton = new QPushButton("Share file(s)", sharingBox);
   connect(sharingButton, SIGNAL(clicked()),
 	  this, SLOT(openFileDialog()));
+  sharingButton->setDefault(false);
+  sharingButton->setAutoDefault(false);
   sharingInput = new QLineEdit(sharingBox);
   sharingInput->setPlaceholderText("Search for files");
   connect(sharingInput, SIGNAL(returnPressed()),
@@ -48,11 +50,13 @@ ChatDialog::ChatDialog(bool nofwd) {
   sharingResults = new QListWidget(sharingBox);
   connect(sharingResults, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
 	  this, SLOT(startDownload(QListWidgetItem*)));
+  sharingFiles = new QListWidget(sharingBox);
   sharingLayout = new QGridLayout(sharingBox);
-  sharingLayout->addWidget(sharingButton, 0, 0, 1, -1);
-  sharingLayout->addWidget(sharingInput, 1, 0, 1, 2);
-  sharingLayout->addWidget(sharingSearch, 1, 2, 1, 1);
-  sharingLayout->addWidget(sharingResults, 2, 0, 1, -1);
+  sharingLayout->addWidget(sharingInput, 0, 0, 1, 2);
+  sharingLayout->addWidget(sharingSearch, 0, 2, 1, 1);
+  sharingLayout->addWidget(sharingButton, 0, 3, 1, 2);
+  sharingLayout->addWidget(sharingResults, 1, 0, 1, 3);
+  sharingLayout->addWidget(sharingFiles, 1, 3, 1, 2);
   
   results = new QMap<QByteArray, QVariantMap>();
   // Lay out the widgets to appear in the main window.
@@ -134,6 +138,7 @@ void ChatDialog::openFileDialog() {
   dialog.setFileMode(QFileDialog::ExistingFiles);
   if (dialog.exec()) {
     foreach (QString filename, dialog.selectedFiles()) {
+      sharingFiles->addItem(filename);
       emit shareFile(filename);
     }
   }

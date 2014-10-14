@@ -47,6 +47,7 @@ private:
   QPushButton *sharingSearch;
   QLineEdit *sharingInput;
   QListWidget *sharingResults;
+  QListWidget *sharingFiles;
   QGridLayout *sharingLayout;
   QGridLayout *layout;
   QMap<QByteArray, QVariantMap> *results;
