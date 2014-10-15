@@ -7,7 +7,7 @@
 #include <QFileInfo>
 #include <QDebug>
 
-#define HOPLIMIT 10
+#define HOPLIMIT 10U
 
 Origin::Origin(QString n, Peer *h) {
   name = n;
@@ -103,22 +103,12 @@ void Origin::startDownload(QString filename, QByteArray meta) {
 QList<SharedFile*> Origin::searchFiles(QString query) {
   QList<SharedFile*> results;
   QStringList keywords = query.split(" ", QString::SkipEmptyParts);
-  QStringList fileKeywords;
-  bool add;
+  QString filename;
   foreach(SharedFile *file, files->values()) {
-    add = false;
-    fileKeywords = QFileInfo(file->getFilename()).fileName().split(" ", QString::SkipEmptyParts);
+    filename = QFileInfo(file->getFilename()).fileName();
     foreach(QString keyword, keywords) {
-      foreach(QString fileKeyword, fileKeywords) {
-	if (keyword == fileKeyword) {
-	  add = true;
-	  break;
-	}
-      }
-      if (add) {
+      if (filename.contains(keyword, Qt::CaseInsensitive))
 	results.append(file);
-	break;
-      }
     }
   }
   return results;

@@ -83,12 +83,14 @@ ChatDialog::ChatDialog(bool nofwd) {
 }
 
 ChatDialog::~ChatDialog() {
+  /*
   delete peerInput;
   delete originSelect;
   delete broadcast;
   foreach(ChatTab *c, chats->values()) {
     delete c;
   }
+  delete tabs;
   delete chats;
   delete sharingBox;
   delete sharingButton;
@@ -103,6 +105,7 @@ ChatDialog::~ChatDialog() {
     delete d;
   }
   delete downloads;
+  */
 }
 
 void ChatDialog::postMessage(QString name, QString msg, QColor color, QString dest) {

@@ -11,8 +11,8 @@
 #include <QDataStream>
 #include <QHostInfo>
 
-#define HOPLIMIT 10
-#define INITBUDGET 2
+#define HOPLIMIT 10U
+#define INITBUDGET 2U
 
 NetSocket::NetSocket() {
   // Pick a range of four UDP ports to try to allocate by default,
