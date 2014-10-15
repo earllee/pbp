@@ -83,29 +83,28 @@ ChatDialog::ChatDialog(bool nofwd) {
 }
 
 ChatDialog::~ChatDialog() {
-  /*
+  delete broadcast;
   delete peerInput;
   delete originSelect;
-  delete broadcast;
   foreach(ChatTab *c, chats->values()) {
     delete c;
   }
-  delete tabs;
   delete chats;
-  delete sharingBox;
+
+  delete tabs;
   delete sharingButton;
   delete sharingSearch;
   delete sharingInput;
   delete sharingResults;
   delete sharingFiles;
   delete sharingLayout;
+  delete sharingBox;
   delete layout;
   delete results;
   foreach(DownloadBox *d, downloads->values()) {
     delete d;
   }
   delete downloads;
-  */
 }
 
 void ChatDialog::postMessage(QString name, QString msg, QColor color, QString dest) {
