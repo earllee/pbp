@@ -1,4 +1,4 @@
-#include "encrypt.h"
+#include "PBP.hh"
 
 // In: datagram of msg to send, pubKey of recipient, privKey of self
 // Returns QByteArray, datagram that represents QVariantMap containing
@@ -40,4 +40,46 @@ QByteArray encryptDatagram(QByteArray datagram, QCA::PublicKey pubKey,
     outStream << secureMsg;
 
     return secureDatagram;
+}
+
+QByteArray decryptDatagram(QByteArray secureMsg, QCA::PublicKey pubKey, QCA::PrivateKey privKey) 
+{
+    // Deserialize the secureMsg and its contents
+    QDataStream *secureMsgStream = new QDataStream(&secureMsg, QIODevice::ReadOnly);
+    QVariantMap msg;
+    *secureMsgStream >> msg;
+
+    QDataStream *secureSymKeyStream = new QDataStream(&(msg["secureSymKey"]), QIODevice::ReadOnly);
+    QCA::MemoryRegion secureSymKey;
+    *secureSymKeyStream >> secureSymKey;
+
+    QDataStream *secureDatagramStream= new QDataStream(&(msg["secureDatagram"]), QIODevice::ReadOnly);
+    QCA::MemoryRegion secureDatagram;
+    *secureDatagramStream >> secureDatagram;
+
+    QDataStream *secureDigestStream = new QDataStream(&(msg["secureDigest"]), QIODevice::ReadOnly);
+    QCA::MemoryRegion secureDigest;
+    *secureDigestStream >> secureDigest;
+
+    QDataStream *iVStream = new QDataStream(&(msg["iV"]), QIODevice::ReadOnly);
+    QCA::InitializationVector iV;
+    *iVStream >> iV;
+
+    // Decrypt random key with private key (RSA)
+    QCA::SecureArray symKey;
+    privKey.decrypt(QCA::MemoryRegion(secureSymKey), &symKey, QCA::EME_PKCS1_OAEP);
+
+    // Decrypt message with random key (symmetric)
+    QCA::Cipher cipher(QString("aes128"), QCA::Cipher::CBC,
+        QCA::Cipher::DefaultPadding, QCA::Decode, symKey, iV);
+
+    QCA::MemoryRegion datagram;
+    datagram = cipher.update(secureDatagram);
+    datagram = cipher.final();
+
+    // Verify digest with public key of sender (RSA)
+    QByteArray myDigest = QCA::Hash("sha1").hash(datagram).toByteArray();
+    QByteArray digest = pubKey.encrypt(secureDigest, QCA::EME_PKCS1_OAEP);
+
+    return datagram.toByteArray();
 }

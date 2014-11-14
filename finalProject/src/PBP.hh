@@ -1,5 +1,5 @@
-#ifndef ENCRYPT_H
-#define ENCRYPT_H
+#ifndef PBP_H
+#define PBP_H
 
 #include <QtCrypto>
 #include <QByteArray>
@@ -14,4 +14,3 @@ QByteArray encryptDatagram(QByteArray datagram, QCA::PublicKey pubKey,
     QCA::PrivateKey privKey); 
 
 #endif
-
