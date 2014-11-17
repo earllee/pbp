@@ -2,12 +2,16 @@
 
 #include <QHostAddress>
 #include <QTimer>
+#include <QTime>
 #include <QDebug>
 #include <QHostInfo>
 #include <QFileInfo>
-#include <OriginList.hh>
 #include <Peer.hh>
 #include <PeerList.hh>
+
+QVector<QString> POKEMON = QVector<QString>() << "Bulbasaur" << "Ivysaur" << "Venusaur" << "Charmander" << "Charmeleon" << "Charizard" << "Squirtle" << "Wartortle" << "Blastoise" << "Caterpie" << "Metapod" << "Butterfree" << "Weedle" << "Kakuna" << "Beedrill" << "Pidgey" << "Pidgeotto" << "Pidgeot" << "Rattata" << "Raticate" << "Spearow" << "Fearow" << "Ekans" << "Arbok" << "Pikachu" << "Raichu" << "Sandshrew" << "Sandslash" << "Nidoran♀" << "Nidorina" << "Nidoqueen" << "Nidoran♂" << "Nidorino" << "Nidoking" << "Clefairy" << "Clefable" << "Vulpix" << "Ninetales" << "Jigglypuff" << "Wigglytuff" << "Zubat" << "Golbat" << "Oddish" << "Gloom" << "Vileplume" << "Paras" << "Parasect" << "Venonat" << "Venomoth" << "Diglett" << "Dugtrio" << "Meowth" << "Persian" << "Psyduck" << "Golduck" << "Mankey" << "Primeape" << "Growlithe" << "Arcanine" << "Poliwag" << "Poliwhirl" << "Poliwrath" << "Abra" << "Kadabra" << "Alakazam" << "Machop" << "Machoke" << "Machamp" << "Bellsprout" << "Weepinbell" << "Victreebel" << "Tentacool" << "Tentacruel" << "Geodude" << "Graveler" << "Golem" << "Ponyta" << "Rapidash" << "Slowpoke" << "Slowbro" << "Magnemite" << "Magneton" << "Farfetch'd" << "Doduo" << "Dodrio" << "Seel" << "Dewgong" << "Grimer" << "Muk" << "Shellder" << "Cloyster" << "Gastly" << "Haunter" << "Gengar" << "Onix" << "Drowzee" << "Hypno" << "Krabby" << "Kingler" << "Voltorb" << "Electrode" << "Exeggcute" << "Exeggutor" << "Cubone" << "Marowak" << "Hitmonlee" << "Hitmonchan" << "Lickitung" << "Koffing" << "Weezing" << "Rhyhorn" << "Rhydon" << "Chansey" << "Tangela" << "Kangaskhan" << "Horsea" << "Seadra" << "Goldeen" << "Seaking" << "Staryu" << "Starmie" << "Mr. Mime" << "Scyther" << "Jynx" << "Electabuzz" << "Magmar" << "Pinsir" << "Tauros" << "Magikarp" << "Gyarados" << "Lapras" << "Ditto" << "Eevee" << "Vaporeon" << "Jolteon" << "Flareon" << "Porygon" << "Omanyte" << "Omastar" << "Kabuto" << "Kabutops" << "Aerodactyl" << "Snorlax" << "Articuno" << "Zapdos" << "Moltres" << "Dratini" << "Dragonair" << "Dragonite" << "Mewtwo" << "Mew";
+
+QVector<QString> PERSONALITIES = QVector<QString>() << "Hardy" << "Lonely" << "Brave" << "Adamant" << "Naughty" << "Bold" << "Docile" << "Relaxed" << "Impish" << "Lax" << "Timid" << "Hasty" << "Serious" << "Jolly" << "Naive" << "Modest" << "Mild" << "Quiet" << "Bashful" << "Rash" << "Calm" << "Gentle" << "Sassy" << "Careful" << "Quirky";
 
 #define HOPLIMIT 10U
 
@@ -26,15 +30,12 @@ PeerList::PeerList(quint16 port, bool nf) {
     qDebug() << QString("I am %1:%2 (%3)").arg(host.toString()).arg(port).arg(info.hostName());
   }
 
-  origins = new OriginList(me);
-  connect(origins, SIGNAL(postMessage(QString, QString, QString)),
+  // initialize origins
+  qsrand(QTime::currentTime().msec());
+  myOrigin = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100), me);
+  connect(myOrigin, SIGNAL(postMessage(QString, QString, QString)),
 	  this, SIGNAL(postMessage(QString, QString, QString)));
-  connect(origins, SIGNAL(newOrigin(QString)),
-	  this, SIGNAL(newOrigin(QString)));
-  connect(origins, SIGNAL(receivedBlocklist(QByteArray, qint64)),
-	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
-  connect(origins, SIGNAL(receivedBlock(QByteArray, qint64)),
-	  this, SIGNAL(receivedBlock(QByteArray, qint64)));
+  origins = new QMap<QString, Origin*>();
 
   entropyTimer = new QTimer(this);
   entropyTimer->setInterval(10000);
@@ -53,13 +54,46 @@ PeerList::PeerList(quint16 port, bool nf) {
   nofwd = nf;
 }
 
-PeerList::~PeerList() {
-  foreach(Peer *p, peers->values()) {
-    delete p;
+Origin *PeerList::getOrigin(QString name, Peer *sender) {
+  if(name == myName()) {
+    return myOrigin;
   }
-  delete peers;
-  delete me;
-  delete entropyTimer;
+  Origin *result = origins->value(name);
+  if (!result)
+    result = addOrigin(name, sender);
+  return result;
+}
+
+Origin *PeerList::getOrigin(QString name) {
+  if(name == myName()) {
+    return myOrigin;
+  }
+  return origins->value(name);
+}
+
+Origin *PeerList::addOrigin(QString name, Peer *sender) {
+  Origin *o = new Origin(name, sender);
+  connect(o, SIGNAL(postMessage(QString, QString, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QString)));
+  connect(o, SIGNAL(receivedBlocklist(QByteArray, qint64)),
+	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
+  connect(o, SIGNAL(receivedBlock(QByteArray, qint64)),
+	  this, SIGNAL(receivedBlock(QByteArray, qint64)));
+  origins->insert(name, o);
+  emit newOrigin(name);
+  return o;
+}
+
+QVariantMap PeerList::constructStatus() {
+  QVariantMap status, want, datagram;
+  status.insert(myName(), mySeqNo());
+  foreach(Origin *o, origins->values()) {
+    status.insert(o->getName(), QVariant(o->next()));
+  }
+  want.insert("Want", QVariant(status));
+  insertMessage(datagram, want);
+  datagram.insert("Type", QVariant("Status"));
+  return datagram;
 }
 
 Peer *PeerList::add(QHostAddress host, QString domain, quint16 port) {
@@ -98,7 +132,7 @@ Peer *PeerList::get(QHostAddress host, quint16 port) {
 }
 
 void PeerList::startDownload(QByteArray meta, QString filename, QString dest) {
-  Origin *o = origins->get(dest);
+  Origin *o = getOrigin(dest);
   if (!o)
     return;
   o->startDownload(meta, filename);
@@ -119,11 +153,11 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
   quint32 budget, hopLimit;
   if (datagram.contains("Origin")) {
     QString origin = datagram.value("Origin").toString();
-    from = origins->get(origin, sender);
+    from = getOrigin(origin, sender);
   }
   if (datagram.contains("Dest")) {
     QString dest = datagram.value("Dest").toString();
-    to = origins->get(dest, sender);
+    to = getOrigin(dest, sender);
   }
   if (datagram.contains("Budget"))
     budget = datagram.value("Budget").toUInt();
@@ -158,7 +192,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
   } else {
     // I'm responding to a search request
     QString query = extractMessage(datagram).value("Search").toString();
-    QList<SharedFile*> files = origins->searchFiles(query);
+    QList<SharedFile*> files = myOrigin->searchFiles(query);
     QVariantList filenames, ids;
     foreach(SharedFile *file, files) {
       filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
@@ -274,21 +308,38 @@ void PeerList::forwardMessage(QVariantMap &datagram, Origin *to, quint32 hopLimi
 }
 
 void PeerList::handleStatus(QVariantMap &datagram, Peer *sender) {
-  QVariantMap reply;
-  QVariantMap message = extractMessage(datagram);
-  QVariantMap needed = origins->nextNeededMessage(message);
-  if (needed.empty()) {
-    // send status back if there are messages missing
-    if (origins->needMessage(message))
-      emit sendMessage(sender->getHost(), sender->getPort(), constructStatus());
+  QVariantMap status = extractMessage(datagram).value("Want").toMap();
+  // find the first needed message by the sender
+  QMap<QString, Origin*> allOrigins(*origins);
+  allOrigins.insert(myName(), myOrigin);
+  quint32 needed;
+  foreach(Origin *o, allOrigins) {
+    if (status.value(o->getName()).isValid())
+      needed = status.value(o->getName()).toUInt();
     else
-      sender->endConnection();
-  } else {
-    reply.insert("Type", QVariant("Rumor"));
-    reply.insert("Origin", needed.value("Origin"));
-    insertMessage(reply, needed);
-    emit sendMessage(sender->getHost(), sender->getPort(), reply);
+      needed = 1;
+    if(needed < o->next()) {
+      QVariantMap reply;
+      reply.insert("Type", QVariant("Rumor"));
+      reply.insert("Origin", o->getName());
+      insertMessage(reply, o->message(needed));
+      emit sendMessage(sender->getHost(), sender->getPort(), reply);
+      return;
+    }
   }
+
+  // the sender doesn't need anything
+  // send back own status if the sender has stuff we need
+  Origin *o;
+  foreach(QString name, status.keys()) {
+    o = getOrigin(name);
+    if(!o || status.value(name).toUInt() - 1 >= o->next()) {
+      emit sendMessage(sender->getHost(), sender->getPort(), constructStatus());
+      return;
+    }
+  }
+  // fully synced so end connection
+  sender->endConnection();
 }
 
 void PeerList::handleRumor(QVariantMap &datagram, Peer *sender, Origin *from) {
@@ -322,7 +373,7 @@ void PeerList::handleRumor(QVariantMap &datagram, Peer *sender, Origin *from) {
 
 void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockRequest(extractMessage(datagram), origins->get(myName()));
+    QVariantMap message = from->blockRequest(extractMessage(datagram), myOrigin);
     if (message.empty())
       return;
     QVariantMap reply;
@@ -367,11 +418,11 @@ quint16 PeerList::myPort() {
 }
 
 QString PeerList::myName() {
-  return origins->myName();
+  return myOrigin->getName();
 }
 
 quint32 PeerList::mySeqNo() {
-  return origins->mySeqNo();
+  return myOrigin->next();
 }
 
 Peer *PeerList::random() {
@@ -426,7 +477,7 @@ void PeerList::sentMessage(QHostAddress host, quint16 port) {
 }
 
 void PeerList::shareFile(QString filename) {
-  origins->shareFile(filename);
+  myOrigin->shareFile(filename);
 }
 
 QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
@@ -442,11 +493,4 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
   datagram.insert("Message", QVariant(buffer));
-}
-
-QVariantMap PeerList::constructStatus() {
-  QVariantMap datagram;
-  insertMessage(datagram, origins->status());
-  datagram.insert("Type", QVariant("Status"));
-  return datagram;
 }

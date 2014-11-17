@@ -6,7 +6,7 @@
 #include <QTimer>
 #include <QColor>
 #include <Peer.hh>
-#include <OriginList.hh>
+#include <Origin.hh>
 
 class PeerList : public QObject {
   Q_OBJECT
@@ -15,12 +15,16 @@ private:
   Peer *me;
   bool nofwd;
   QMap<QString, Peer*> *peers;
-  OriginList *origins;
+  QMap<QString, Origin*> *origins;
+  Origin *myOrigin;
   QTimer *entropyTimer;
   QVariantMap currentQuery;
   quint32 currentBudget;
   QMap<QByteArray, bool> *results;
   QTimer *searchTimer;
+  Origin *getOrigin(QString, Peer*);
+  Origin *getOrigin(QString);
+  Origin *addOrigin(QString, Peer*);
   Peer *get(QHostAddress, quint16);
   Peer *random();
   QList<Peer*> randoms(quint32);
@@ -36,7 +40,6 @@ private:
   QVariantMap constructStatus();
 public:
   PeerList(quint16, bool nf = false);
-  ~PeerList();
   Peer *add(QHostAddress, QString, quint16);
   Peer *add(QHostAddress, quint16);
   Peer *add(QString, quint16);

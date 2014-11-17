@@ -3,7 +3,6 @@
 #include <QtCrypto>
 #include <QDebug>
 #include <Origin.hh>
-#include <OriginList.hh>
 #include <Peer.hh>
 #include <PeerList.hh>
 #include <ChatDialog.hh>
