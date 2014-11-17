@@ -122,7 +122,7 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
     from = origins->get(origin, sender);
   }
   if (datagram.contains("Dest")) {
-    QString dest = datagram.value("Origin").toString();
+    QString dest = datagram.value("Dest").toString();
     to = origins->get(dest, sender);
   }
   if (datagram.contains("Budget"))

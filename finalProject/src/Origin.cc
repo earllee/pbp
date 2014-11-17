@@ -44,10 +44,6 @@ QVariantMap Origin::message(quint32 sn) {
 }
 
 bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender, bool dir) {
-  qDebug() << "BEFORE";
-  qDebug() << ((messages == NULL) ? "null" : "not");
-  qDebug() << messages->size();
-  qDebug() << "AFTER";
   if((int)sn > messages->size())
     messages->resize(sn);
   if(messages->value(sn - 1).empty() && sn >= seqNo) {
