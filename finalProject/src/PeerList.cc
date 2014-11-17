@@ -148,6 +148,8 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
 
 void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 budget) {
   if (from->getName() == myName()) {
+    if (extractMessage(datagram).value("Search").toString() == extractMessage(currentQuery).value("Search").toString()) // drop own search requests
+      return;
     // I'm sending a new search request
     currentQuery = datagram;
     results->clear();
@@ -172,9 +174,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
     replyMessage.insert("MatchNames", QVariant(filenames));
     replyMessage.insert("MatchIDs", QVariant(ids));
     insertMessage(reply, replyMessage);
-
-    Peer *hop = from->getHop();
-    emit sendMessage(hop->getHost(), hop->getPort(), reply);
+    forwardMessage(reply, from, HOPLIMIT + 1);
 
     // decide whether to propagate
     budget = budget - 1;
@@ -194,11 +194,12 @@ void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *de
 
     for (int i = 0; i < len; i++) {
       QByteArray key = ids.at(i).toByteArray();
-      if (message.value("SearchReply").toString() == currentQuery.value("Search").toString()
+      if (message.value("SearchReply").toString() == extractMessage(currentQuery).value("Search").toString()
 	  && !results->contains(key)) {
 	results->insert(key, true);
 	if (results->size() >= 10)
 	  searchTimer->stop();
+	qDebug() << filenames.at(i).toString();
 	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName());
       }
     }
@@ -217,6 +218,7 @@ void PeerList::expandSearch() {
 }
 
 void PeerList::propagateSearch(QVariantMap &datagram, quint32 budget) {
+  qDebug() << budget;
   if (budget >= (quint32) peers->size()) {
     // every peer gets the message
     QList<Peer*> recipients = peers->values();
