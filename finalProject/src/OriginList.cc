@@ -18,8 +18,8 @@ QVector<QString> PERSONALITIES = QVector<QString>() << "Hardy" << "Lonely" << "B
 OriginList::OriginList(Peer *myPeer) {
   qsrand(QTime::currentTime().msec());
   me = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100), myPeer);
-  connect(me, SIGNAL(postMessage(QString, QString, QColor, QString)),
-	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  connect(me, SIGNAL(postMessage(QString, QString, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QString)));
   origins = new QMap<QString, Origin*>();
 }
 
@@ -50,8 +50,8 @@ Origin *OriginList::get(QString name, Peer *sender) {
 
 Origin *OriginList::add(QString name, Peer *sender) {
   Origin *o = new Origin(name, sender);
-  connect(o, SIGNAL(postMessage(QString, QString, QColor, QString)),
-	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  connect(o, SIGNAL(postMessage(QString, QString, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QString)));
   connect(o, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
   connect(o, SIGNAL(receivedBlock(QByteArray, qint64)),
@@ -91,7 +91,9 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
     else
       needed = 1;
     if(needed < o->next()) {
-      return o->message(needed);
+      QVariantMap msg = o->message(needed);
+      msg.insert("Origin", o->getName());
+      return msg;
     }
   }
   return QVariantMap();

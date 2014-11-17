@@ -33,8 +33,7 @@ private:
   void handleBlockRequest(QVariantMap&, Origin*, Origin*, quint32);
   void handleBlockReply(QVariantMap&, Origin*, Origin*, quint32);
   void forwardMessage(QVariantMap&, Origin*, quint32);
-  QVariantMap extractMessage(QVariantMap&);
-  void insertMessage(QVariantMap&, QVariantMap);
+  QVariantMap constructStatus();
 public:
   PeerList(quint16, bool nf = false);
   ~PeerList();
@@ -50,6 +49,8 @@ public:
   quint32 mySeqNo();
   void shareFile(QString);
   void startDownload(QByteArray, QString, QString);
+  void insertMessage(QVariantMap&, QVariantMap);
+  QVariantMap extractMessage(QVariantMap&);
 public slots:
   void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16);
