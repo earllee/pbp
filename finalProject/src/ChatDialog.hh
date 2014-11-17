@@ -21,12 +21,12 @@ public:
   ~ChatDialog();
   ChatTab *newChatTab(QString);
 public slots:
-  void postMessage(QString, QString, QColor, QString);
+  void postMessage(QString, QString, QString);
   void newPeer();
   void newOrigin(QString);
   void openTab(QListWidgetItem*);
   void openFileDialog();
-  void searchReply(QVariantMap);
+  void searchReply(QByteArray, QString, QString);
   void initiateSearch();
   void startDownload(QListWidgetItem*);
   void receivedBlocklist(QByteArray, qint64);
@@ -35,11 +35,12 @@ signals:
   void newMessage(QString, QString);
   void addPeer(QString);
   void shareFile(QString);
-  void downloadFile(QString, QByteArray, QString);
+  void downloadFile(QByteArray, QString, QString);
   void search(QString);
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;
+  QMap<QString, QColor> *colors;
   QLineEdit *peerInput;
   QListWidget *originSelect;
   QTabWidget *tabs;
@@ -51,7 +52,7 @@ private:
   QListWidget *sharingFiles;
   QGridLayout *sharingLayout;
   QGridLayout *layout;
-  QMap<QByteArray, QVariantMap> *results;
+  QMap<QByteArray, QPair<QString, QString> > *results;
   QMap<QByteArray, DownloadBox*> *downloads;
 };
 

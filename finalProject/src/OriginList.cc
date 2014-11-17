@@ -20,8 +20,6 @@ OriginList::OriginList(Peer *myPeer) {
   me = new Origin(QString("%1%2%3").arg(PERSONALITIES.value(qrand() % PERSONALITIES.size())).arg(POKEMON.value(qrand() % POKEMON.size())).arg(qrand() % 100), myPeer);
   connect(me, SIGNAL(postMessage(QString, QString, QColor, QString)),
 	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
-  connect(me, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
-	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
   origins = new QMap<QString, Origin*>();
 }
 
@@ -40,12 +38,20 @@ Origin *OriginList::get(QString name) {
   return origins->value(name);
 }
 
+Origin *OriginList::get(QString name, Peer *sender) {
+  if(name == myName()) {
+    return me;
+  }
+  Origin *result = origins->value(name);
+  if (!result)
+    result = add(name, sender);
+  return result;
+}
+
 Origin *OriginList::add(QString name, Peer *sender) {
   Origin *o = new Origin(name, sender);
   connect(o, SIGNAL(postMessage(QString, QString, QColor, QString)),
 	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
-  connect(o, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
-	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
   connect(o, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
   connect(o, SIGNAL(receivedBlock(QByteArray, qint64)),
@@ -91,14 +97,6 @@ QVariantMap OriginList::nextNeededMessage(QVariantMap want) {
   return QVariantMap();
 }
 
-bool OriginList::addMessage(QVariantMap message, Peer *sender, bool direct) {
-  QString name = message.value("Origin").toString();
-  Origin *o = get(name);
-  if(!o)
-    o = add(name, sender);
-  return o->addMessage(message.value("SeqNo").toUInt(), message, sender, direct);
-}
-
 QVariantMap OriginList::status() {
   QVariantMap status;
   status.insert(myName(), mySeqNo());
@@ -118,86 +116,10 @@ quint32 OriginList::mySeqNo() {
   return me->next();
 }
 
-void OriginList::startDownload(QString filename, QByteArray meta, QString dest) {
-  Origin *o = get(dest);
-  if (!o)
-    return;
-  o->startDownload(filename, meta);
-}
-
-void OriginList::privateMessage(QVariantMap datagram, Peer *sender) {
-  QString from = datagram.value("Origin").toString();
-  Origin *o;
-  if (datagram.contains("BlockRequest")) {
-    o = get(from);
-    if (!o)
-      o = add(from, sender);
-    o->blockRequest(datagram, me);
-  } else if (datagram.contains("BlockReply")) {
-    o = get(from);
-    if (!o)
-      o = add(from, sender);
-    o->blockReply(datagram, me);
-  } else if (datagram.contains("SearchReply")) {
-    o = get(from);
-    if (!o)
-      o = add(from, sender);
-    QVariantList filenames = datagram.value("MatchNames").toList();
-    QVariantList ids = datagram.value("MatchIDs").toList();
-    int len = filenames.size();
-    for (int i = 0; i < len; i++) {
-      QVariantMap reply;
-      reply.insert("Filename", filenames.at(i));
-      reply.insert("ID", ids.at(i));
-      reply.insert("Origin", QVariant(from));
-      reply.insert("SearchReply", datagram.value("SearchReply"));
-      emit searchReply(reply);
-    }
-  } else {
-    QString chatbox;
-    if (from == myName()) {
-      o = me;
-      chatbox = datagram.value("Dest").toString();
-    } else {
-      o = get(from);
-      if (!o)
-	o = add(from, sender);
-      chatbox = from;
-    }
-    o->privateMessage(datagram, chatbox);
-  }
-}
-
-void OriginList::searchMessage(QVariantMap datagram, Peer *sender) {
-  QString from = datagram.value("Origin").toString();
-  Origin *o = get(from);
-  if (!o)
-    o = add(from, sender);
-  QString query = datagram.value("Search").toString();
-  QList<SharedFile*> files = me->searchFiles(query);
-  QVariantList filenames, ids;
-  foreach(SharedFile *file, files) {
-    filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
-    ids.append(QVariant(file->getMeta()));
-  }
-  QVariantMap reply;
-  reply.insert("Dest", QVariant(from));
-  reply.insert("Origin", QVariant(me->getName()));
-  reply.insert("HopLimit", QVariant(HOPLIMIT));
-  reply.insert("SearchReply", QVariant(query));
-  reply.insert("MatchNames", QVariant(filenames));
-  reply.insert("MatchIDs", QVariant(ids));
-  send(from, reply);
-}
-
-void OriginList::send(QString dest, QVariantMap datagram) {
-  Origin *o = get(dest);
-  if (!o)
-    return;
-  Peer *hop = o->getHop();
-  emit sendMessage(hop->getHost(), hop->getPort(), datagram);
-}
-
 void OriginList::shareFile(QString filename) {
   me->shareFile(filename);
+}
+
+QList<SharedFile*> OriginList::searchFiles(QString query) {
+  return me->searchFiles(query);
 }

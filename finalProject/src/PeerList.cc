@@ -4,10 +4,12 @@
 #include <QTimer>
 #include <QDebug>
 #include <QHostInfo>
-#include <QColor>
+#include <QFileInfo>
 #include <OriginList.hh>
 #include <Peer.hh>
 #include <PeerList.hh>
+
+#define HOPLIMIT 10U
 
 PeerList::PeerList(quint16 port, bool nf) {
   peers = new QMap<QString, Peer*>();
@@ -25,14 +27,12 @@ PeerList::PeerList(quint16 port, bool nf) {
   }
 
   origins = new OriginList(me);
-  connect(origins, SIGNAL(postMessage(QString, QString, QColor, QString)),
-	  this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+  connect(origins, SIGNAL(postMessage(QString, QString, QString)),
+	  this, SIGNAL(postMessage(QString, QString, QString)));
   connect(origins, SIGNAL(newOrigin(QString)),
 	  this, SIGNAL(newOrigin(QString)));
   connect(origins, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	  this, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)));
-  connect(origins, SIGNAL(searchReply(QVariantMap)),
-	  this, SLOT(gotSearchReply(QVariantMap)));
   connect(origins, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 	  this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
   connect(origins, SIGNAL(receivedBlock(QByteArray, qint64)),
@@ -99,47 +99,86 @@ Peer *PeerList::get(QHostAddress host, quint16 port) {
     return peers->value(QString("%1:%2").arg(host.toString()).arg(port));
 }
 
-void PeerList::startDownload(QString filename, QByteArray meta, QString dest) {
-  origins->startDownload(filename, meta, dest);
+void PeerList::startDownload(QByteArray meta, QString filename, QString dest) {
+  Origin *o = origins->get(dest);
+  if (!o)
+    return;
+  o->startDownload(meta, filename);
 }
 
-void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap datagram) {
+void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram) {
   Peer *sender = get(host, port);
   if(!sender)
     sender = add(host, port);
   if(sender != me)
     sender->makeConnection();
 
-  if (datagram.contains("Search")) {
-    if (nofwd)
-      return;
-    handleSearch(datagram, sender);
-  } else if(datagram.contains("Dest")) {
-    if (nofwd)
-      return;
-    handlePrivate(datagram, sender);
-  } else if(datagram.contains("Want")) {
-    if (nofwd)
-      return;
-    handleStatus(datagram, sender);
-  } else {
-    handleRumor(datagram, sender);
+  QString msgType = datagram.value("Type").toString();
+  if (msgType != "Rumor" && nofwd)
+    return;
+
+  Origin *from, *to;
+  quint32 budget, hopLimit;
+  if (datagram.contains("Origin")) {
+    QString origin = datagram.value("Origin").toString();
+    from = origins->get(origin, sender);
   }
+  if (datagram.contains("Dest")) {
+    QString dest = datagram.value("Origin").toString();
+    to = origins->get(dest, sender);
+  }
+  if (datagram.contains("Budget"))
+    budget = datagram.value("Budget").toUInt();
+  if (datagram.contains("HopLimit"))
+    hopLimit = datagram.value("HopLimit").toUInt();
+
+  if (msgType == "Rumor")
+    handleRumor(datagram, sender, from);
+  else if (msgType == "Status")
+    handleStatus(datagram, sender);
+  else if (msgType == "Private")
+    handlePrivate(datagram, from, to, hopLimit);
+  else if (msgType == "SearchRequest")
+    handleSearchRequest(datagram, from, budget);
+  else if (msgType == "SearchReply")
+    handleSearchReply(datagram, from, to, hopLimit);
+  else if (msgType == "BlockRequest")
+    handleBlockRequest(datagram, from, to, hopLimit);
+  else if (msgType == "BlockReply")
+    handleBlockReply(datagram, from, to, hopLimit);
 }
 
-void PeerList::handleSearch(QVariantMap datagram, Peer *sender) {
-  QString origin = datagram.value("Origin").toString();
-  quint32 budget;
-  if (origin == myName()
-      && datagram.value("Search").toString() != currentQuery.value("Search").toString()) {
+void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 budget) {
+  if (from->getName() == myName()) {
+    // I'm sending a new search request
     currentQuery = datagram;
     results->clear();
-    currentBudget = datagram.value("Budget").toUInt();
-    budget = currentBudget;
+    currentBudget = budget;
     searchTimer->start();
   } else {
-    origins->searchMessage(datagram, sender);
-    budget = datagram.value("Budget").toUInt() - 1;
+    // I'm responding to a search request
+    QString query = extractMessage(datagram).value("Search").toString();
+    QList<SharedFile*> files = origins->searchFiles(query);
+    QVariantList filenames, ids;
+    foreach(SharedFile *file, files) {
+      filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
+      ids.append(QVariant(file->getMeta()));
+    }
+    QVariantMap reply;
+    reply.insert("Dest", QVariant(from->getName()));
+    reply.insert("Origin", QVariant(myName()));
+    reply.insert("HopLimit", QVariant(HOPLIMIT));
+    QVariantMap replyMessage;
+    replyMessage.insert("SearchReply", QVariant(query));
+    replyMessage.insert("MatchNames", QVariant(filenames));
+    replyMessage.insert("MatchIDs", QVariant(ids));
+    insertMessage(reply, replyMessage);
+
+    Peer *hop = from->getHop();
+    emit sendMessage(hop->getHost(), hop->getPort(), reply);
+
+    // decide whether to propagate
+    budget = budget - 1;
     if (budget <= 0)
       return;
   }
@@ -147,14 +186,25 @@ void PeerList::handleSearch(QVariantMap datagram, Peer *sender) {
   propagateSearch(datagram, budget);
 }
 
-void PeerList::gotSearchReply(QVariantMap reply) {
-  QByteArray key = reply.value("ID").toByteArray();
-  if (reply.value("SearchReply").toString() == currentQuery.value("Search").toString()
-      && !results->contains(key)) {
-    results->insert(key, true);
-    if (results->size() >= 10)
-      searchTimer->stop();
-    emit searchReply(reply);
+void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *dest, quint32 hopLimit) {
+  if (dest->getName() == myName()) {
+    QVariantMap message = extractMessage(datagram);
+    QVariantList filenames = message.value("MatchNames").toList();
+    QVariantList ids = message.value("MatchIDs").toList();
+    int len = filenames.size();
+
+    for (int i = 0; i < len; i++) {
+      QByteArray key = ids.at(i).toByteArray();
+      if (message.value("SearchReply").toString() == currentQuery.value("Search").toString()
+	  && !results->contains(key)) {
+	results->insert(key, true);
+	if (results->size() >= 10)
+	  searchTimer->stop();
+	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName());
+      }
+    }
+  } else {
+    forwardMessage(datagram, dest, hopLimit);
   }
 }
 
@@ -167,8 +217,9 @@ void PeerList::expandSearch() {
   propagateSearch(currentQuery, currentBudget);
 }
 
-void PeerList::propagateSearch(QVariantMap datagram, quint32 budget) {
+void PeerList::propagateSearch(QVariantMap &datagram, quint32 budget) {
   if (budget >= (quint32) peers->size()) {
+    // every peer gets the message
     QList<Peer*> recipients = peers->values();
     int nRecipients = recipients.size();
     if (nRecipients == 0)
@@ -182,6 +233,7 @@ void PeerList::propagateSearch(QVariantMap datagram, quint32 budget) {
       emit sendMessage(recipient->getHost(), recipient->getPort(), datagram);
     }
   } else {
+    // budget only reaches some peers
     QList<Peer*> recipients = randoms(budget);
     datagram.insert("Budget", QVariant(1));
     foreach (Peer *recipient, recipients) {
@@ -190,62 +242,115 @@ void PeerList::propagateSearch(QVariantMap datagram, quint32 budget) {
   }
 }
 
-void PeerList::handlePrivate(QVariantMap datagram, Peer *sender) {
-    QString dest = datagram.value("Dest").toString();
-    QString origin = datagram.value("Origin").toString();
-    if (dest == myName()) {
-      origins->privateMessage(datagram, sender);
-    } else {
-      if(origin != myName()) {
-	quint32 hopLimit = datagram.value("HopLimit").toUInt() - 1;
-	if(hopLimit <= 0)
-	  return;
-	datagram.insert("HopLimit", hopLimit);
-      } else if (datagram.contains("ChatText")) {
-	origins->privateMessage(datagram, sender);
-      }
-      origins->send(dest, datagram);
-    }
+void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
+  QString chatText, fromName, toName;
+  fromName = from->getName();
+  toName = to->getName();
+  if (fromName == myName() || toName == myName()) {
+    chatText = extractMessage(datagram).value("ChatText").toString();
+  }
+
+  if (toName == myName()) {
+    // post message sent to me
+    emit postMessage(fromName, chatText, fromName);
+  } else if (fromName == myName()) {
+    // post message sent by me and forward
+    emit postMessage(fromName, chatText, toName);
+    forwardMessage(datagram, to, hopLimit + 1);
+  } else {
+    forwardMessage(datagram, to, hopLimit);
+  }
 }
 
-void PeerList::handleStatus(QVariantMap datagram, Peer *sender) {
-  QVariantMap message = origins->nextNeededMessage(datagram);
-  if(message.empty()) {
+void PeerList::forwardMessage(QVariantMap &datagram, Origin *to, quint32 hopLimit) {
+  hopLimit--;
+  if (hopLimit <= 0)
+    return;
+  datagram.insert("HopLimit", hopLimit);
+
+  Peer *hop = to->getHop();
+  emit sendMessage(hop->getHost(), hop->getPort(), datagram);
+}
+
+void PeerList::handleStatus(QVariantMap &datagram, Peer *sender) {
+  QVariantMap reply;
+  QVariantMap message = origins->nextNeededMessage(extractMessage(datagram));
+  if (message.empty()) {
     // send status back if there are messages missing
-    if(origins->needMessage(datagram))
+    if (origins->needMessage(datagram))
       emit sendMessage(sender->getHost(), sender->getPort(), origins->status());
     else
       sender->endConnection();
   } else {
-    emit sendMessage(sender->getHost(), sender->getPort(), message);
+    reply.insert("Type", "Status");
+    insertMessage(reply, message);
+    emit sendMessage(sender->getHost(), sender->getPort(), reply);
   }
 }
 
-void PeerList::handleRumor(QVariantMap datagram, Peer *sender) {
+void PeerList::handleRumor(QVariantMap &datagram, Peer *sender, Origin *from) {
     Peer *last = sender;
     bool direct = true;
-    if(datagram.contains("LastIP")) {
+    if (datagram.contains("LastIP")) {
       direct = false;
       QHostAddress lastHost(datagram.value("LastIP").toUInt());
       quint16 lastPort = datagram.value("LastPort").toUInt();
-      if(!lastHost.isNull()) {
+      if (!lastHost.isNull()) {
 	last = get(lastHost, lastPort);
 	if (!last)
 	  last = add(lastHost, lastPort);
       }
     }
+
     // is rumor
-    if(origins->addMessage(datagram, last, direct)) {
+    QVariantMap message = extractMessage(datagram);
+    if (from->addMessage(message.value("SeqNo").toUInt(), message, last, direct)) {
       // add message returns whether or not the message is new (i.e., hot)
-      if(sender != me) {
+      if (sender != me) {
 	datagram.insert("LastIP", QVariant(sender->getHost().toIPv4Address()));
 	datagram.insert("LastPort", QVariant(sender->getPort()));
       }
       // broadcast to everyone if it's a routing message
-      rumor(datagram, !datagram.contains("ChatText"));
+      rumor(datagram, !message.contains("ChatText"));
     }
     if(sender != me && !nofwd)
       emit sendMessage(sender->getHost(), sender->getPort(), origins->status());
+}
+
+void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
+  if (to->getName() == myName()) {
+    QVariantMap message = from->blockRequest(extractMessage(datagram), origins->get(myName()));
+    if (message.empty())
+      return;
+    QVariantMap reply;
+    reply.insert("Dest", from->getName());
+    reply.insert("Origin", myName());
+    reply.insert("HopLimit", QVariant(HOPLIMIT));
+    insertMessage(reply, message);
+    forwardMessage(reply, from, HOPLIMIT + 1);
+  } else if (from->getName() == myName()) {
+    forwardMessage(datagram, to, hopLimit + 1);
+  } else {
+    forwardMessage(datagram, to, hopLimit);
+  }
+}
+
+void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
+  if (to->getName() == myName()) {
+    QVariantMap message = from->blockReply(extractMessage(datagram));
+    if (message.empty())
+      return;
+    QVariantMap request;
+    request.insert("Dest", from->getName());
+    request.insert("Origin", myName());
+    request.insert("HopLimit", QVariant(HOPLIMIT));
+    insertMessage(request, message);
+    forwardMessage(request, from, HOPLIMIT + 1);
+  } else if (from->getName() == myName()) {
+    forwardMessage(datagram, to, hopLimit + 1);
+  } else {
+    forwardMessage(datagram, to, hopLimit);
+  }
 }
 
 QHostAddress PeerList::myHost() {
@@ -317,4 +422,19 @@ void PeerList::sentMessage(QHostAddress host, quint16 port) {
 
 void PeerList::shareFile(QString filename) {
   origins->shareFile(filename);
+}
+
+QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
+  QByteArray messageData = datagram.value("Message").toByteArray();
+  QDataStream stream(&messageData, QIODevice::ReadOnly);
+  QVariantMap message;
+  stream >> message;
+  return message;
+}
+
+void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
+  QByteArray buffer;
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  stream << message;
+  datagram.insert("Message", QVariant(buffer));
 }
