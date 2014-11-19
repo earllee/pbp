@@ -3,7 +3,6 @@
 #include <QtCrypto>
 #include <QDebug>
 #include <Origin.hh>
-#include <OriginList.hh>
 #include <Peer.hh>
 #include <PeerList.hh>
 #include <ChatDialog.hh>
@@ -59,20 +58,20 @@ int main(int argc, char **argv) {
 
   QObject::connect(&dialog, SIGNAL(newMessage(QString, QString)),
 		   &sock, SLOT(localMessage(QString, QString)));
-  QObject::connect(&sock, SIGNAL(postMessage(QString, QString, QColor, QString)),
-		   &dialog, SLOT(postMessage(QString, QString, QColor, QString)));
+  QObject::connect(&sock, SIGNAL(postMessage(QString, QString, QString)),
+		   &dialog, SLOT(postMessage(QString, QString, QString)));
   QObject::connect(&dialog, SIGNAL(addPeer(QString)),
 		   &sock, SLOT(addPeer(QString)));
   QObject::connect(&sock, SIGNAL(newOrigin(QString)),
 		   &dialog, SLOT(newOrigin(QString)));
   QObject::connect(&dialog, SIGNAL(shareFile(QString)),
 		   &sock, SLOT(shareFile(QString)));
-  QObject::connect(&dialog, SIGNAL(downloadFile(QString, QByteArray, QString)),
-		   &sock, SLOT(fileMessage(QString, QByteArray, QString)));
+  QObject::connect(&dialog, SIGNAL(downloadFile(QByteArray, QString, QString)),
+		   &sock, SLOT(fileMessage(QByteArray, QString, QString)));
   QObject::connect(&dialog, SIGNAL(search(QString)),
 		   &sock, SLOT(searchMessage(QString)));
-  QObject::connect(&sock, SIGNAL(searchReply(QVariantMap)),
-		   &dialog, SLOT(searchReply(QVariantMap)));
+  QObject::connect(&sock, SIGNAL(searchReply(QByteArray, QString, QString)),
+		   &dialog, SLOT(searchReply(QByteArray, QString, QString)));
   QObject::connect(&sock, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 		   &dialog, SLOT(receivedBlocklist(QByteArray, qint64)));
   QObject::connect(&sock, SIGNAL(receivedBlock(QByteArray, qint64)),

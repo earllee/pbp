@@ -7,13 +7,10 @@
 #include <QFileInfo>
 #include <QDebug>
 
-#define HOPLIMIT 10U
-
 Origin::Origin(QString n, Peer *h) {
   name = n;
   seqNo = 1;
   latestSeqNo = 0;
-  color.setHsv(qrand() % 360, 128 + qrand() % 128, (qrand() % 128) + 64);
   messages = new QVector<QVariantMap>();
   files = new QMap<QByteArray, SharedFile*>();
   downloads = new QMap<QByteArray, SharedFile*>();
@@ -59,7 +56,7 @@ bool Origin::addMessage(quint32 sn, QVariantMap datagram, Peer *sender, bool dir
       for(; !messages->value(seqNo - 1).empty(); seqNo++) {
 	// emit all messages that were waiting if not route rumor
 	if(messages->value(seqNo-1).contains("ChatText"))
-	  emit postMessage(name, messages->value(seqNo-1).value("ChatText").toString(), color, QString());
+	  emit postMessage(name, messages->value(seqNo-1).value("ChatText").toString(), QString());
       }
     }
     // update if newest otherwise update if direct but wasn't already direct
@@ -78,10 +75,6 @@ Peer *Origin::getHop() {
   return hop;
 }
 
-void Origin::privateMessage(QVariantMap datagram, QString chatbox) {
-  emit postMessage(name, datagram.value("ChatText").toString(), color, chatbox);
-}
-
 void Origin::shareFile(QString filename) {
   SharedFile *file = new SharedFile(filename);
   files->insert(file->getMeta(), file);
@@ -91,7 +84,7 @@ SharedFile *Origin::fileByHash(QByteArray metaHash) {
   return files->value(metaHash);
 }
 
-void Origin::startDownload(QString filename, QByteArray meta) {
+void Origin::startDownload(QByteArray meta, QString filename) {
   SharedFile *file = new SharedFile(filename, meta);
   files->insert(meta, file);
   connect(file, SIGNAL(receivedBlocklist(QByteArray, qint64)),
@@ -114,13 +107,13 @@ QList<SharedFile*> Origin::searchFiles(QString query) {
   return results;
 }
 
-void Origin::blockRequest(QVariantMap datagram, Origin *me) {
+QVariantMap Origin::blockRequest(QVariantMap datagram, Origin *me) {
   QByteArray blockHash = datagram.value("BlockRequest").toByteArray();
   SharedFile *file = downloads->value(blockHash);
   if (!file) {
     SharedFile *fileToDl = me->fileByHash(blockHash);
     if (!fileToDl)
-      return;
+      return QVariantMap();
     file = new SharedFile(fileToDl->getFilename(), fileToDl->getMeta(), fileToDl->getBlocklist());
   }
   QByteArray next;
@@ -130,30 +123,28 @@ void Origin::blockRequest(QVariantMap datagram, Origin *me) {
     if (!next.isEmpty())
       downloads->insert(next, file);
     QVariantMap send;
-    send.insert("Dest", QVariant(name));
-    send.insert("Origin", QVariant(me->getName()));
-    send.insert("HopLimit", QVariant(HOPLIMIT));
     send.insert("BlockReply", QVariant(blockHash));
     send.insert("Data", QVariant(data));
-    emit sendMessage(hop->getHost(), hop->getPort(), send);
+    return send;
+  } else {
+    return QVariantMap();
   }
 }
 
-void Origin::blockReply(QVariantMap datagram, Origin *me) {
+QVariantMap Origin::blockReply(QVariantMap datagram) {
   QByteArray blockHash = datagram.value("BlockReply").toByteArray();
   QByteArray data = datagram.value("Data").toByteArray();
   SharedFile *file = files->value(blockHash);
   if (!file)
-    return;
+    return QVariantMap();
   QByteArray next = file->blockReply(blockHash, data);
   downloads->remove(blockHash);
   if (!next.isEmpty()) {
     files->insert(next, file);
     QVariantMap send;
-    send.insert("Dest", QVariant(name));
-    send.insert("Origin", QVariant(me->getName()));
-    send.insert("HopLimit", QVariant(HOPLIMIT));
     send.insert("BlockRequest", QVariant(next));
-    emit sendMessage(hop->getHost(), hop->getPort(), send);
+    return send;
+  } else {
+    return QVariantMap();
   }
 }

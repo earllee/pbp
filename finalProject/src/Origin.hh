@@ -36,16 +36,14 @@ public:
   Peer *getHop();
   QVariantMap message(quint32);
   bool addMessage(quint32, QVariantMap, Peer*, bool);
-  void privateMessage(QVariantMap, QString);
-  void blockRequest(QVariantMap, Origin*);
-  void blockReply(QVariantMap, Origin*);
+  QVariantMap blockRequest(QVariantMap, Origin*);
+  QVariantMap blockReply(QVariantMap);
   void shareFile(QString);
-  void startDownload(QString, QByteArray);
+  void startDownload(QByteArray, QString);
   SharedFile *fileByHash(QByteArray);
   QList<SharedFile*> searchFiles(QString);
 signals:
-  void postMessage(QString, QString, QColor, QString);
-  void sendMessage(QHostAddress, quint16, QVariantMap);
+  void postMessage(QString, QString, QString);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
 };

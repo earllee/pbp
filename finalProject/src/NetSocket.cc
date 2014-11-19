@@ -46,12 +46,12 @@ bool NetSocket::bind(bool nofwd) {
 	  peers->add(QHostAddress::LocalHost, port);
 	}
       }
-      connect(peers, SIGNAL(postMessage(QString, QString, QColor, QString)),
-	      this, SIGNAL(postMessage(QString, QString, QColor, QString)));
+      connect(peers, SIGNAL(postMessage(QString, QString, QString)),
+	      this, SIGNAL(postMessage(QString, QString, QString)));
       connect(peers, SIGNAL(newOrigin(QString)),
 	      this, SIGNAL(newOrigin(QString)));
-      connect(peers, SIGNAL(searchReply(QVariantMap)),
-	      this, SIGNAL(searchReply(QVariantMap)));
+      connect(peers, SIGNAL(searchReply(QByteArray, QString, QString)),
+	      this, SIGNAL(searchReply(QByteArray, QString, QString)));
       connect(peers, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 	      this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
       connect(peers, SIGNAL(receivedBlock(QByteArray, qint64)),
@@ -90,33 +90,40 @@ void NetSocket::addPeer(QString text) {
 }
 
 void NetSocket::localMessage(QString text, QString dest) {
-  QVariantMap datagram;
+  QVariantMap datagram, message;
   datagram.insert("Origin", QVariant(peers->myName()));
-  datagram.insert("ChatText", QVariant(text));
+  message.insert("ChatText", QVariant(text));
   if(dest.isEmpty()) {
-    datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
+    message.insert("SeqNo", QVariant(peers->mySeqNo()));
+    datagram.insert("Type", QVariant("Rumor"));
   } else {
     datagram.insert("Dest", QVariant(dest));
     datagram.insert("HopLimit", QVariant(HOPLIMIT));
+    datagram.insert("Type", QVariant("Private"));
   }
+  peers->insertMessage(datagram, message);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
-void NetSocket::fileMessage(QString filename, QByteArray hash, QString dest) {
-  peers->startDownload(filename, hash, dest);
-  QVariantMap datagram;
+void NetSocket::fileMessage(QByteArray hash, QString filename, QString dest) {
+  peers->startDownload(hash, filename, dest);
+  QVariantMap datagram, message;
   datagram.insert("Origin", QVariant(peers->myName()));
   datagram.insert("Dest", QVariant(dest));
   datagram.insert("HopLimit", QVariant(HOPLIMIT));
-  datagram.insert("BlockRequest", QVariant(hash));
+  datagram.insert("Type", QVariant("BlockRequest"));
+  message.insert("BlockRequest", QVariant(hash));
+  peers->insertMessage(datagram, message);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
 void NetSocket::searchMessage(QString search) {
-  QVariantMap datagram;
+  QVariantMap datagram, message;
   datagram.insert("Origin", QVariant(peers->myName()));
-  datagram.insert("Search", QVariant(search));
+  message.insert("Search", QVariant(search));
   datagram.insert("Budget", QVariant(INITBUDGET));
+  datagram.insert("Type", QVariant("SearchRequest"));
+  peers->insertMessage(datagram, message);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -125,9 +132,11 @@ void NetSocket::shareFile(QString filename) {
 }
 
 void NetSocket::routeRumor() {
-  QVariantMap datagram;
+  QVariantMap datagram, message;
   datagram.insert("Origin", QVariant(peers->myName()));
-  datagram.insert("SeqNo", QVariant(peers->mySeqNo()));
+  datagram.insert("Type", QVariant("Rumor"));
+  message.insert("SeqNo", QVariant(peers->mySeqNo()));
+  peers->insertMessage(datagram, message);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -137,7 +146,10 @@ void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagra
   stream << datagram;
 
   writeDatagram(buffer, host, port);
-  qDebug() << QString("[SENT %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
+  QVariantMap toPrint = datagram;
+  toPrint.insert("Message", QVariant(peers->extractMessage(toPrint)));
+  qDebug() << toPrint;
+  // qDebug() << QString("[SENT %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
 }
 
 void NetSocket::receiveMessage() {
@@ -151,7 +163,10 @@ void NetSocket::receiveMessage() {
     QVariantMap datagram;
     stream >> datagram;
 
-    qDebug() << QString("[RECEIVED %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
+    QVariantMap toPrint = datagram;
+    toPrint.insert("Message", QVariant(peers->extractMessage(toPrint)));
+    qDebug() << toPrint;
+    // qDebug() << QString("[RECEIVED %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
     peers->newMessage(host, port, datagram);
   }
 }

@@ -18,6 +18,7 @@ ChatDialog::ChatDialog(bool nofwd) {
   setWindowTitle("Peerster");
 
   chats = new QMap<QString, ChatTab*>();
+  colors = new QMap<QString, QColor>();
 
   peerInput = new QLineEdit(this);
   peerInput->setPlaceholderText("Add a peer");
@@ -60,7 +61,7 @@ ChatDialog::ChatDialog(bool nofwd) {
   sharingLayout->addWidget(sharingFiles, 1, 3, 1, 2);
   downloads = new QMap<QByteArray, DownloadBox*>();
   
-  results = new QMap<QByteArray, QVariantMap>();
+  results = new QMap<QByteArray, QPair<QString, QString> >();
   // Lay out the widgets to appear in the main window.
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
@@ -101,13 +102,23 @@ ChatDialog::~ChatDialog() {
   delete sharingBox;
   delete layout;
   delete results;
+  delete colors;
   foreach(DownloadBox *d, downloads->values()) {
     delete d;
   }
   delete downloads;
 }
 
-void ChatDialog::postMessage(QString name, QString msg, QColor color, QString dest) {
+void ChatDialog::postMessage(QString name, QString msg, QString dest) {
+  QColor color;
+  if (!colors->contains(name)) {
+    color.setHsv(qrand() % 360, 128 + qrand() % 128, (qrand() % 128) + 64);
+    colors->insert(name, color);
+  } else {
+    color = colors->value(name);
+  }
+
+  // determine which tab to send it to
   if(dest.isEmpty()) {
     broadcast->postMessage(name, msg, color);
   } else {
@@ -171,22 +182,22 @@ void ChatDialog::initiateSearch() {
   emit search(query);
 }
 
-void ChatDialog::searchReply(QVariantMap reply) {
-  results->insert(reply.value("ID").toByteArray(), reply);
-  sharingResults->addItem(reply.value("Filename").toString());
+void ChatDialog::searchReply(QByteArray id, QString filename, QString origin) {
+  results->insert(id, QPair<QString, QString>(filename, origin));
+  sharingResults->addItem(filename);
   QListWidgetItem *widget = sharingResults->item(sharingResults->count() - 1);
-  widget->setData(Qt::UserRole, reply.value("ID"));
+  widget->setData(Qt::UserRole, QVariant(id));
 }
 
 void ChatDialog::startDownload(QListWidgetItem *item) {
-
-  QVariantMap reply = results->value(item->data(Qt::UserRole).toByteArray());
-  DownloadBox *d = new DownloadBox(reply.value("Filename").toString());
-  downloads->insert(reply.value("ID").toByteArray(), d);
+  QByteArray id = item->data(Qt::UserRole).toByteArray();
+  QPair<QString, QString> info = results->value(id);
+  DownloadBox *d = new DownloadBox(info.first);
+  downloads->insert(id, d);
   sharingLayout->addWidget(d, sharingLayout->rowCount(), 0, 1, -1);
-  emit downloadFile(reply.value("Filename").toString(),
-		    reply.value("ID").toByteArray(),
-		    reply.value("Origin").toString());
+  emit downloadFile(id,
+		    info.first,
+		    info.second);
 }
 
 void ChatDialog::receivedBlocklist(QByteArray id, qint64 block) {
