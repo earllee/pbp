@@ -19,6 +19,6 @@ QByteArray decryptDatagram(QByteArray secureMsg, QCA::PublicKey pubKey,
 
 QByteArray encryptMap(QVariantMap, QCA::PublicKey, QCA::PrivateKey);
 
-QVariantMap decryptData(QByteArray, QCA::PublicKey, QCA::PrivateKey);
+QVariantMap decryptMap(QByteArray, QCA::PublicKey, QCA::PrivateKey);
 
 #endif

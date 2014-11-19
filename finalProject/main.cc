@@ -9,6 +9,29 @@
 #include <ChatDialog.hh>
 #include <NetSocket.hh>
 #include <QApplication>
+#include <PBP.hh>
+
+int testEncryption() {
+
+  QString msg = "Test message 1 2 3 ...";
+  QVariantMap map;
+  map.insert("Message", msg);
+  
+  QCA::PrivateKey *privKeyA = new QCA::PrivateKey();
+  QCA::PrivateKey *privKeyB = new QCA::PrivateKey();
+  QCA::PublicKey *pubKeyA = new QCA::PublicKey(*privKeyA);
+  QCA::PublicKey *pubKeyB = new QCA::PublicKey(*privKeyB);
+
+  qDebug() << "Original Map:\n" << map;
+
+  QByteArray encryptedMap = encryptMap(map, *pubKeyA, *privKeyB);
+  QVariantMap decryptedMap = decryptMap(encryptedMap, *pubKeyB, *privKeyA);
+
+  qDebug() << "\n\nDecrypted Map:\n" << decryptedMap;
+
+  exit(0);
+
+}
 
 int main(int argc, char **argv) {
   // Initialize QtCrypto
@@ -21,6 +44,8 @@ int main(int argc, char **argv) {
   foreach(QString s, app.arguments().mid(1)) {
     if(s == "-noforward")
       nofwd = true;
+    if(s == "-test")
+      testEncryption();
   }
 
   // Create an initial chat dialog window
