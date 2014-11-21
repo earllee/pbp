@@ -164,24 +164,59 @@ void ChatDialog::peerClicked(QListWidgetItem *item) {
   } else if (state == "Pending") {
     msgBox.setText(QString("Are you sure you want to resend a trust request to this peer (%1)?").arg(peer));
   } else if (state == "Trusted") {
+    msgBox.setText(QString("You already trust this peer (%1).").arg(peer));
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
     return;
   }
   switch (msgBox.exec()) {
   case QMessageBox::Yes:
     if (state == "Untrusted") {
       setPeerState(peer, "Pending");
+      emit requestTrust(peer);
     } else if (state == "Rejected") {
       setPeerState(peer, "Trusted");
+      emit trustApproved(peer);
     } else if (state == "Pending") {
       setPeerState(peer, "Pending");
+      emit requestTrust(peer);
     }    
     break;
     // don't do anything if no
   }
 }
 
-void ChatDialog::setPeerState(QString name, QString state) {
-  QList<QListWidgetItem*> items = peerSelect->findItems(name, Qt::MatchExactly);
+void ChatDialog::approveTrust(QString peer) {
+  QList<QListWidgetItem*> items = peerSelect->findItems(peer, Qt::MatchExactly);
+  if (items.empty())
+    peerSelect->addItem(peer);
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  msgBox.setText(QString("%1 sent you a trust request. Accept?").arg(peer));
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    setPeerState(peer, "Trusted");
+    emit trustApproved(peer);
+    break;
+  case QMessageBox::No:
+    setPeerState(peer, "Rejected");
+    break;
+  }
+}
+
+void ChatDialog::acceptedTrust(QString peer) {
+  setPeerState(peer, "Trusted");
+  QMessageBox msgBox;
+  msgBox.setText(QString("%1 accepted your trust request.").arg(peer));
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.setDefaultButton(QMessageBox::Ok);
+  msgBox.exec();
+}
+
+void ChatDialog::setPeerState(QString peer, QString state) {
+  QList<QListWidgetItem*> items = peerSelect->findItems(peer, Qt::MatchExactly);
   foreach(QListWidgetItem *item, items) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Untrusted") {

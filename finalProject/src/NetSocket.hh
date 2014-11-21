@@ -28,6 +28,8 @@ public slots:
   void addPeer(QString);
   void routeRumor();
   void shareFile(QString);
+  void requestTrust(QString);
+  void trustApproved(QString);
 signals:
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
@@ -35,6 +37,8 @@ signals:
   void searchReply(QByteArray, QString, QString);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
+  void approveTrust(QString);
+  void acceptedTrust(QString);
 };
 
 #endif

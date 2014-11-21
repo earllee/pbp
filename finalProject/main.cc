@@ -49,6 +49,14 @@ int main(int argc, char **argv) {
 		   &dialog, SLOT(receivedBlock(QByteArray, qint64)));
   QObject::connect(&sock, SIGNAL(newPeer(QString)),
 		   &dialog, SLOT(newPeer(QString)));
+  QObject::connect(&dialog, SIGNAL(requestTrust(QString)),
+		   &sock, SLOT(requestTrust(QString)));
+  QObject::connect(&dialog, SIGNAL(trustApproved(QString)),
+		   &sock, SLOT(trustApproved(QString)));
+  QObject::connect(&sock, SIGNAL(approveTrust(QString)),
+		   &dialog, SLOT(approveTrust(QString)));
+  QObject::connect(&sock, SIGNAL(acceptedTrust(QString)),
+		   &dialog, SLOT(acceptedTrust(QString)));
 
   if (!sock.bind(nofwd))
     exit(1);

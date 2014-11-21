@@ -132,6 +132,16 @@ void NetSocket::shareFile(QString filename) {
   peers->shareFile(filename);
 }
 
+void NetSocket::requestTrust(QString peer) {
+  // placeholder to auto accept
+  emit acceptedTrust(peer);
+  emit approveTrust("test");
+}
+
+void NetSocket::trustApproved(QString peer) {
+  // send response to requesting peer
+}
+
 void NetSocket::routeRumor() {
   QVariantMap datagram, message;
   datagram.insert("Origin", QVariant(peers->myName()));
