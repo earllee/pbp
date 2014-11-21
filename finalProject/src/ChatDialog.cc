@@ -140,6 +140,10 @@ void ChatDialog::messageable(QString name) {
 
 void ChatDialog::setOriginState(QString name, QString state) {
   QList<QListWidgetItem*> items = originSelect->findItems(name, Qt::MatchExactly);
+  if (items.empty())
+    originSelect->addItem(name);
+  items = originSelect->findItems(name, Qt::MatchExactly);
+
   foreach(QListWidgetItem *item, items) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Connected") {
@@ -222,9 +226,6 @@ void ChatDialog::peerClicked(QListWidgetItem *item) {
 }
 
 void ChatDialog::approveTrust(QString peer) {
-  QList<QListWidgetItem*> items = peerSelect->findItems(peer, Qt::MatchExactly);
-  if (items.empty())
-    peerSelect->addItem(peer);
   QMessageBox msgBox;
   msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
   msgBox.setDefaultButton(QMessageBox::No);
@@ -251,6 +252,10 @@ void ChatDialog::acceptedTrust(QString peer) {
 
 void ChatDialog::setPeerState(QString peer, QString state) {
   QList<QListWidgetItem*> items = peerSelect->findItems(peer, Qt::MatchExactly);
+  if (items.empty())
+    peerSelect->addItem(peer);
+  items = peerSelect->findItems(peer, Qt::MatchExactly);
+
   foreach(QListWidgetItem *item, items) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Untrusted") {
