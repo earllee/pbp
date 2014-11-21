@@ -12,6 +12,7 @@
 #include <QPushButton>
 #include <QFileDialog>
 #include <QByteArray>
+#include <QMessageBox>
 #include <QDebug>
 
 ChatDialog::ChatDialog(bool nofwd) {
@@ -23,11 +24,15 @@ ChatDialog::ChatDialog(bool nofwd) {
   peerInput = new QLineEdit(this);
   peerInput->setPlaceholderText("Add a peer");
   connect(peerInput, SIGNAL(returnPressed()),
-	  this, SLOT(newPeer()));
+	  this, SLOT(addPeer()));
 
   originSelect = new QListWidget(this);
   connect(originSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
 	  this, SLOT(openTab(QListWidgetItem*)));
+
+  peerSelect = new QListWidget(this);
+  connect(peerSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+	  this, SLOT(peerClicked(QListWidgetItem*)));
 
   tabs = new QTabWidget();
   broadcast = new ChatTab("");
@@ -66,47 +71,25 @@ ChatDialog::ChatDialog(bool nofwd) {
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
   layout = new QGridLayout(this);
-  QLabel *label = new QLabel(this);
-  label->setText("Origin List");
+  QLabel *originLabel = new QLabel(this);
+  originLabel->setText("Origin List");
+  QLabel *peerLabel = new QLabel(this);
+  peerLabel->setText("Peer List");
   if (nofwd) {
-    layout->addWidget(label, 0, 0);
+    layout->addWidget(originLabel, 0, 0);
     layout->addWidget(originSelect, 1, 0);
     layout->addWidget(peerInput, 2, 0);
   } else {
     layout->addWidget(tabs, 0, 0, 3, 1);
-    layout->addWidget(label, 0, 1);
-    layout->addWidget(originSelect, 1, 1);
-    layout->addWidget(peerInput, 2, 1);
+    layout->addWidget(originLabel, 0, 1);
+    layout->addWidget(originSelect, 1, 1, 2, 1);
+    layout->addWidget(peerLabel, 0, 2);
+    layout->addWidget(peerSelect, 1, 2);
+    layout->addWidget(peerInput, 2, 2);
     layout->addWidget(sharingBox, 3, 0, 1, -1);
   }
 
   broadcast->focus();
-}
-
-ChatDialog::~ChatDialog() {
-  delete broadcast;
-  delete peerInput;
-  delete originSelect;
-  foreach(ChatTab *c, chats->values()) {
-    delete c;
-  }
-  delete chats;
-
-  delete tabs;
-  delete sharingButton;
-  delete sharingSearch;
-  delete sharingInput;
-  delete sharingResults;
-  delete sharingFiles;
-  delete sharingLayout;
-  delete sharingBox;
-  delete layout;
-  delete results;
-  delete colors;
-  foreach(DownloadBox *d, downloads->values()) {
-    delete d;
-  }
-  delete downloads;
 }
 
 void ChatDialog::postMessage(QString name, QString msg, QString dest) {
@@ -131,9 +114,11 @@ void ChatDialog::postMessage(QString name, QString msg, QString dest) {
   }
 }
 
-void ChatDialog::newPeer() {
+void ChatDialog::addPeer() {
   QString peer = peerInput->text();
   peerInput->clear();
+  peerSelect->addItem(peer);
+  setPeerState(peer, "Untrusted");
   emit addPeer(peer);
 }
 
@@ -159,6 +144,56 @@ void ChatDialog::openTab(QListWidgetItem *item) {
     tab = newChatTab(name);
   tabs->setCurrentWidget(tab);
   tab->focus();
+}
+
+void ChatDialog::newPeer(QString name) {
+  peerSelect->addItem(name);
+  setPeerState(name, "Untrusted");
+}
+
+void ChatDialog::peerClicked(QListWidgetItem *item) {
+  QString state = item->data(Qt::UserRole).toString();
+  QString peer = item->text();
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  if (state == "Untrusted") {
+    msgBox.setText(QString("Are you sure you want to send a trust request to this peer (%1)?").arg(peer));
+  } else if (state == "Rejected") {
+    msgBox.setText(QString("Are you sure you want to accept trust from this peer (%1) even though you rejected it earlier?").arg(peer));
+  } else if (state == "Pending") {
+    msgBox.setText(QString("Are you sure you want to resend a trust request to this peer (%1)?").arg(peer));
+  } else if (state == "Trusted") {
+    return;
+  }
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    if (state == "Untrusted") {
+      setPeerState(peer, "Pending");
+    } else if (state == "Rejected") {
+      setPeerState(peer, "Trusted");
+    } else if (state == "Pending") {
+      setPeerState(peer, "Pending");
+    }    
+    break;
+    // don't do anything if no
+  }
+}
+
+void ChatDialog::setPeerState(QString name, QString state) {
+  QList<QListWidgetItem*> items = peerSelect->findItems(name, Qt::MatchExactly);
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Untrusted") {
+      item->setBackground(QBrush(QColor("#95A5A6")));
+    } else if (state == "Rejected") {
+      item->setBackground(QBrush(QColor("#E74C3C")));
+    } else if (state == "Pending") {
+      item->setBackground(QBrush(QColor("#3498DB")));
+    } else if (state == "Trusted") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    }
+  }
 }
 
 void ChatDialog::openFileDialog() {

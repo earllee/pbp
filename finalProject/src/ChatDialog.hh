@@ -18,11 +18,11 @@ class ChatDialog : public QDialog {
 
 public:
   ChatDialog(bool nofwd = false);
-  ~ChatDialog();
   ChatTab *newChatTab(QString);
 public slots:
   void postMessage(QString, QString, QString);
-  void newPeer();
+  void addPeer();
+  void newPeer(QString);
   void newOrigin(QString);
   void openTab(QListWidgetItem*);
   void openFileDialog();
@@ -31,6 +31,7 @@ public slots:
   void startDownload(QListWidgetItem*);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
+  void peerClicked(QListWidgetItem*);
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
@@ -43,6 +44,7 @@ private:
   QMap<QString, QColor> *colors;
   QLineEdit *peerInput;
   QListWidget *originSelect;
+  QListWidget *peerSelect;
   QTabWidget *tabs;
   QGroupBox *sharingBox;
   QPushButton *sharingButton;
@@ -54,6 +56,7 @@ private:
   QGridLayout *layout;
   QMap<QByteArray, QPair<QString, QString> > *results;
   QMap<QByteArray, DownloadBox*> *downloads;
+  void setPeerState(QString, QString);
 };
 
 #endif

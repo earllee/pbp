@@ -31,6 +31,7 @@ public slots:
 signals:
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
+  void newPeer(QString);
   void searchReply(QByteArray, QString, QString);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);

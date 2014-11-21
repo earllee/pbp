@@ -44,6 +44,7 @@ bool NetSocket::bind(bool nofwd) {
       for (int port = myPortMin; port <= myPortMax; port++) {
 	if (port != p) {
 	  peers->add(QHostAddress::LocalHost, port);
+	  emit newPeer(QString("%1:%2").arg(QHostAddress(QHostAddress::LocalHost).toString()).arg(port));
 	}
       }
       connect(peers, SIGNAL(postMessage(QString, QString, QString)),

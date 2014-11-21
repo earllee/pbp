@@ -24,12 +24,8 @@ int main(int argc, char **argv) {
 
   // Create an initial chat dialog window
   ChatDialog dialog(nofwd);
-  dialog.show();
-
   // Create a UDP network socket
   NetSocket sock;
-  if (!sock.bind(nofwd))
-    exit(1);
 
   QObject::connect(&dialog, SIGNAL(newMessage(QString, QString)),
 		   &sock, SLOT(localMessage(QString, QString)));
@@ -51,15 +47,21 @@ int main(int argc, char **argv) {
 		   &dialog, SLOT(receivedBlocklist(QByteArray, qint64)));
   QObject::connect(&sock, SIGNAL(receivedBlock(QByteArray, qint64)),
 		   &dialog, SLOT(receivedBlock(QByteArray, qint64)));
+  QObject::connect(&sock, SIGNAL(newPeer(QString)),
+		   &dialog, SLOT(newPeer(QString)));
+
+  if (!sock.bind(nofwd))
+    exit(1);
 
   foreach(QString s, app.arguments().mid(1)) {
     if(s != "-noforward")
       sock.addPeer(s);
   }
-
+  // send an initial routing broadcast
   sock.routeRumor();
 
   // Enter the Qt main loop; everything else is event driven
+  dialog.show();
   return app.exec();  
 }
 

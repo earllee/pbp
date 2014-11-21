@@ -48,7 +48,7 @@ void Peer::endConnection() {
   foreach(QVariantMap msg, *rumors) {
     // keep rumormongering with 50% chance
     if (qrand() % 2)
-      rumor(msg);
+      emit rumor(msg);
   }
   rumors->clear();
   timer->stop();
