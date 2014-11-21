@@ -19,6 +19,9 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
     QCA::Initializer init;
     QCA::SymmetricKey symKey(SYMMETRIC_KEY_SIZE);
     QCA::InitializationVector iV(16); 
+    if(!QCA::isSupported("aes128-cbc-pkcs7"))
+        printf("AES128-CBC not supported!\n");
+    
     QCA::Cipher cipher(QString("aes128"), QCA::Cipher::CBC,
             QCA::Cipher::DefaultPadding,
             QCA::Encode,
@@ -38,7 +41,7 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
 
     // Create signature
     QCA::SecureArray dataDigest = QCA::Hash("sha1").hash(buffer);
-    QByteArray signature = privKey.signMessage(dataDigest, QCA::EMSA1_SHA1);
+    QByteArray signature = privKey.signMessage(dataDigest, QCA::EMSA3_MD5);
 
     // Encrypt symmetric key
     QCA::SecureArray encryptedSymKey = pubKey.encrypt(symKey, QCA::EME_PKCS1_OAEP);
@@ -99,7 +102,7 @@ QVariantMap decryptMap(QByteArray datagram, QCA::PublicKey pubKey, QCA::PrivateK
     }
 
     // Check signature
-    if (!pubKey.verifyMessage(decryptedData, data["Signature"].toByteArray(), QCA::EMSA1_SHA1)) {
+    if (!pubKey.verifyMessage(decryptedData, data["Signature"].toByteArray(), QCA::EMSA3_MD5)) {
         qDebug() << "decryptData: veryMessage() failed\n";
         data.insert("Success", false);
         return data;
