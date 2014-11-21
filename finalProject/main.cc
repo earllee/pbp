@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
 		   &dialog, SLOT(approveTrust(QString)));
   QObject::connect(&sock, SIGNAL(acceptedTrust(QString)),
 		   &dialog, SLOT(acceptedTrust(QString)));
+  QObject::connect(&sock, SIGNAL(messageable(QString)),
+		   &dialog, SLOT(messageable(QString)));
 
   if (!sock.bind(nofwd))
     exit(1);

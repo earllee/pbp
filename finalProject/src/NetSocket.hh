@@ -39,6 +39,7 @@ signals:
   void receivedBlock(QByteArray, qint64);
   void approveTrust(QString);
   void acceptedTrust(QString);
+  void messageable(QString);
 };
 
 #endif

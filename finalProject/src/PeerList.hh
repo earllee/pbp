@@ -66,6 +66,7 @@ signals:
   void searchReply(QByteArray, QString, QString);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
+  void newPeer(QString);
 };
 
 #endif

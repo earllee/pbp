@@ -97,12 +97,14 @@ QVariantMap PeerList::constructStatus() {
 }
 
 Peer *PeerList::add(QHostAddress host, QString domain, quint16 port) {
-  Peer *newPeer = new Peer(host, domain, port);
-  peers->insert(QString("%1:%2").arg(host.toString()).arg(port), newPeer);
-  connect(newPeer, SIGNAL(rumor(QVariantMap)),
+  Peer *toAdd = new Peer(host, domain, port);
+  QString peerString = QString("%1:%2").arg(host.toString()).arg(port);
+  peers->insert(peerString, toAdd);
+  connect(toAdd, SIGNAL(rumor(QVariantMap)),
 	  this, SLOT(rumor(QVariantMap)));
-  qDebug() << QString("Peer added %1:%2 (%3)").arg(host.toString()).arg(port).arg(domain);
-  return newPeer;
+  emit newPeer(peerString);
+  qDebug() << QString("Peer added %1 (%2)").arg(peerString).arg(domain);
+  return toAdd;
 }
 
 Peer *PeerList::add(QHostAddress host, quint16 port) {

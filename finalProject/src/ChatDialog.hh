@@ -24,7 +24,7 @@ public slots:
   void addPeer();
   void newPeer(QString);
   void newOrigin(QString);
-  void openTab(QListWidgetItem*);
+  void originClicked(QListWidgetItem*);
   void openFileDialog();
   void searchReply(QByteArray, QString, QString);
   void initiateSearch();
@@ -34,6 +34,7 @@ public slots:
   void peerClicked(QListWidgetItem*);
   void approveTrust(QString);
   void acceptedTrust(QString);
+  void messageable(QString);
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
@@ -61,6 +62,7 @@ private:
   QMap<QByteArray, QPair<QString, QString> > *results;
   QMap<QByteArray, DownloadBox*> *downloads;
   void setPeerState(QString, QString);
+  void setOriginState(QString, QString);
 };
 
 #endif

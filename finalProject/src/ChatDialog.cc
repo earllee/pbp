@@ -28,7 +28,7 @@ ChatDialog::ChatDialog(bool nofwd) {
 
   originSelect = new QListWidget(this);
   connect(originSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
-	  this, SLOT(openTab(QListWidgetItem*)));
+	  this, SLOT(originClicked(QListWidgetItem*)));
 
   peerSelect = new QListWidget(this);
   connect(peerSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
@@ -124,6 +124,51 @@ void ChatDialog::addPeer() {
 
 void ChatDialog::newOrigin(QString name) {
   originSelect->addItem(name);
+  setOriginState(name, "Connected");
+  // testing messageable
+  messageable(name);
+}
+
+void ChatDialog::messageable(QString name) {
+  setOriginState(name, "Messageable");
+  QMessageBox msgBox;
+  msgBox.setText(QString("%1 has been added to your web of trust.").arg(name));
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.setDefaultButton(QMessageBox::Ok);
+  msgBox.exec();
+}
+
+void ChatDialog::setOriginState(QString name, QString state) {
+  QList<QListWidgetItem*> items = originSelect->findItems(name, Qt::MatchExactly);
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Connected") {
+      item->setBackground(QBrush(QColor("#95A5A6")));
+    } else if (state == "Messageable") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    }
+  }
+}
+
+void ChatDialog::originClicked(QListWidgetItem *item) {
+  QString state = item->data(Qt::UserRole).toString();
+  QString name = item->text();
+  if (state == "Connected") {
+    QMessageBox msgBox;
+    msgBox.setText(QString("%1 is not in your web of trust.").arg(name));
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
+  } else if (state == "Messageable") {
+    ChatTab *tab;
+    QString name = name;
+    if(chats->contains(name))
+      tab = chats->value(name);
+    else
+      tab = newChatTab(name);
+    tabs->setCurrentWidget(tab);
+    tab->focus();
+  }
 }
 
 ChatTab *ChatDialog::newChatTab(QString name) {
@@ -133,17 +178,6 @@ ChatTab *ChatDialog::newChatTab(QString name) {
   connect(tab, SIGNAL(newMessage(QString, QString)),
 	  this, SIGNAL(newMessage(QString, QString)));
   return tab;
-}
-
-void ChatDialog::openTab(QListWidgetItem *item) {
-  ChatTab *tab;
-  QString name = item->text();
-  if(chats->contains(name))
-    tab = chats->value(name);
-  else
-    tab = newChatTab(name);
-  tabs->setCurrentWidget(tab);
-  tab->focus();
 }
 
 void ChatDialog::newPeer(QString name) {
