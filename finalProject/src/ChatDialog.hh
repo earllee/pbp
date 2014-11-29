@@ -34,6 +34,8 @@ public slots:
   void peerClicked(QListWidgetItem*);
   void approveTrust(QString);
   void acceptedTrust(QString);
+  void approveFriend(QString);
+  void acceptedFriend(QString);
   void messageable(QString);
 signals:
   void newMessage(QString, QString);
@@ -43,6 +45,8 @@ signals:
   void search(QString);
   void requestTrust(QString);
   void trustApproved(QString);
+  void requestFriend(QString);
+  void friendApproved(QString);
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;

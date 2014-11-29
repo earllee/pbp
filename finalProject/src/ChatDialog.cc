@@ -130,7 +130,7 @@ void ChatDialog::newOrigin(QString name) {
 }
 
 void ChatDialog::messageable(QString name) {
-  setOriginState(name, "Messageable");
+  setOriginState(name, "HaveKey");
   QMessageBox msgBox;
   msgBox.setText(QString("%1 has been added to your web of trust.").arg(name));
   msgBox.setStandardButtons(QMessageBox::Ok);
@@ -148,7 +148,13 @@ void ChatDialog::setOriginState(QString name, QString state) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Connected") {
       item->setBackground(QBrush(QColor("#95A5A6")));
-    } else if (state == "Messageable") {
+    } else if (state == "HaveKey") {
+      item->setBackground(QBrush(QColor("#9B59B6")));
+    } else if (state == "Rejected") {
+      item->setBackground(QBrush(QColor("#E74C3C")));
+    } else if (state == "Pending") {
+      item->setBackground(QBrush(QColor("#3498DB")));
+    } else if (state == "Friend") {
       item->setBackground(QBrush(QColor("#2ECC71")));
     }
   }
@@ -157,25 +163,73 @@ void ChatDialog::setOriginState(QString name, QString state) {
 void ChatDialog::originClicked(QListWidgetItem *item) {
   QString state = item->data(Qt::UserRole).toString();
   QString name = item->text();
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
   if (state == "Connected") {
-    QMessageBox msgBox;
     msgBox.setText(QString("%1 is not in your web of trust.").arg(name));
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
-    msgBox.exec();
-  } else if (state == "Messageable") {
+  } else if (state == "HaveKey") {
+    msgBox.setText(QString("Are you sure you want to send a friend request to this origin (%1)?").arg(name));
+  } else if (state == "Pending") {
+    msgBox.setText(QString("Are you sure you want to resend a friend request to this origin (%1)?").arg(name));
+  } else if (state == "Rejected") {
+    msgBox.setText(QString("Are you sure you want to accept this origin's (%1) friend request even though you rejected it earlier?").arg(name));
+  } else if (state == "Friend") {
     ChatTab *tab;
-    QString name = name;
-    if(chats->contains(name))
+    if (chats->contains(name))
       tab = chats->value(name);
     else
       tab = newChatTab(name);
     tabs->setCurrentWidget(tab);
     tab->focus();
+    return;
+  }
+
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    if (state == "HaveKey") {
+      setOriginState(name, "Pending");
+      emit requestFriend(name);
+    } else if (state == "Pending") {
+      emit requestFriend(name);
+    } else if (state == "Rejected") {
+      setOriginState(name, "Friend");
+      emit friendApproved(name);
+    }    
+    break;
+    // don't do anything if no
   }
 }
 
+void ChatDialog::approveFriend(QString name) {
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  msgBox.setText(QString("%1 sent you a friend request. Accept?").arg(name));
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    setOriginState(name, "Friend");
+    emit friendApproved(name);
+    break;
+  case QMessageBox::No:
+    setOriginState(name, "Rejected");
+    break;
+  }
+}
+
+void ChatDialog::acceptedFriend(QString name) {
+  setOriginState(name, "Friend");
+  QMessageBox msgBox;
+  msgBox.setText(QString("%1 accepted your friend request.").arg(name));
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.setDefaultButton(QMessageBox::Ok);
+  msgBox.exec();
+}
+
 ChatTab *ChatDialog::newChatTab(QString name) {
+  qDebug() << "again";
   ChatTab *tab = new ChatTab(name);
   chats->insert(name, tab);
   tabs->addTab(tab, name);

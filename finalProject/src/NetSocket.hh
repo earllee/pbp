@@ -30,6 +30,8 @@ public slots:
   void shareFile(QString);
   void requestTrust(QString); // send a trust request
   void trustApproved(QString); // reply to trust request
+  void requestFriend(QString); // send a friend request
+  void friendApproved(QString); // reply to friend request
 signals:
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
@@ -39,6 +41,8 @@ signals:
   void receivedBlock(QByteArray, qint64);
   void approveTrust(QString); // ask to approve
   void acceptedTrust(QString); // requestee accepts
+  void approveFriend(QString); // ask to approve
+  void acceptedFriend(QString); // requestee accepts
   void messageable(QString); // received key for that peer
 };
 

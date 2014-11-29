@@ -135,11 +135,20 @@ void NetSocket::shareFile(QString filename) {
 void NetSocket::requestTrust(QString peer) {
   // placeholder to auto accept
   emit acceptedTrust(peer);
-  emit approveTrust("test");
 }
 
 void NetSocket::trustApproved(QString peer) {
   // send response to requesting peer
+}
+
+void NetSocket::requestFriend(QString name) {
+  // placeholder to auto accept
+  emit acceptedFriend(name);
+  emit approveFriend("test");
+}
+
+void NetSocket::friendApproved(QString name) {
+  // send response to requesting origin
 }
 
 void NetSocket::routeRumor() {
