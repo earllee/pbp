@@ -401,11 +401,11 @@ void ChatDialog::initiateSearch() {
   emit search(query);
 }
 
-void ChatDialog::searchReply(QByteArray id, QString filename, QString origin, bool isPrivate) {
+void ChatDialog::searchReply(QByteArray id, QString filename, QString origin, bool isFriend) {
   results->insert(id, QPair<QString, QString>(filename, origin));
   sharingResults->addItem(filename);
-  if (isPrivate)
-    setResultState(filename, "Private");
+  if (isFriend)
+    setResultState(filename, "Friend");
   else
     setResultState(filename, "Public");
   QListWidgetItem *widget = sharingResults->item(sharingResults->count() - 1);
@@ -421,9 +421,9 @@ void ChatDialog::setResultState(QString filename, QString state) {
   foreach(QListWidgetItem *item, items) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Public") {
+      item->setBackground(QBrush(QColor("#95A5A6")));
+    } else if (state == "Friend") {
       item->setBackground(QBrush(QColor("#2ECC71")));
-    } else if (state == "Private") {
-      item->setBackground(QBrush(QColor("#9B59B6")));
     }
   }
 }

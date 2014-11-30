@@ -129,7 +129,7 @@ void NetSocket::searchMessage(QString search) {
 }
 
 void NetSocket::shareFile(QString filename, bool isPrivate) {
-  peers->shareFile(filename);
+  peers->shareFile(filename, isPrivate);
 }
 
 void NetSocket::filePrivate(QString filename, bool isPrivate) {

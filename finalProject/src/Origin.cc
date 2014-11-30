@@ -75,8 +75,8 @@ Peer *Origin::getHop() {
   return hop;
 }
 
-void Origin::shareFile(QString filename) {
-  SharedFile *file = new SharedFile(filename);
+void Origin::shareFile(QString filename, bool isPrivate) {
+  SharedFile *file = new SharedFile(filename, isPrivate);
   files->insert(file->getMeta(), file);
 }
 
@@ -93,14 +93,15 @@ void Origin::startDownload(QByteArray meta, QString filename) {
 	  this, SIGNAL(receivedBlock(QByteArray, qint64)));
 }
 
-QList<SharedFile*> Origin::searchFiles(QString query) {
+QList<SharedFile*> Origin::searchFiles(QString query, bool includePrivate) {
   QList<SharedFile*> results;
   QStringList keywords = query.split(" ", QString::SkipEmptyParts);
   QString filename;
   foreach(SharedFile *file, files->values()) {
     filename = QFileInfo(file->getFilename()).fileName();
     foreach(QString keyword, keywords) {
-      if (filename.contains(keyword, Qt::CaseInsensitive))
+      if (filename.contains(keyword, Qt::CaseInsensitive) &&
+	  (!file->isPrivate() || includePrivate))
 	results.append(file);
     }
   }

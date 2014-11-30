@@ -194,23 +194,25 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
   } else {
     // I'm responding to a search request
     QString query = extractMessage(datagram).value("Search").toString();
-    QList<SharedFile*> files = myOrigin->searchFiles(query);
-    QVariantList filenames, ids;
-    foreach(SharedFile *file, files) {
-      filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
-      ids.append(QVariant(file->getMeta()));
+    QList<SharedFile*> files = myOrigin->searchFiles(query, isFriend(from->getName()));
+    if (files.size() > 0) {
+      QVariantList filenames, ids;
+      foreach(SharedFile *file, files) {
+	filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
+	ids.append(QVariant(file->getMeta()));
+      }
+      QVariantMap reply;
+      reply.insert("Dest", QVariant(from->getName()));
+      reply.insert("Origin", QVariant(myName()));
+      reply.insert("HopLimit", QVariant(HOPLIMIT));
+      reply.insert("Type", QVariant("SearchReply"));
+      QVariantMap replyMessage;
+      replyMessage.insert("SearchReply", QVariant(query));
+      replyMessage.insert("MatchNames", QVariant(filenames));
+      replyMessage.insert("MatchIDs", QVariant(ids));
+      insertMessage(reply, replyMessage);
+      forwardMessage(reply, from, HOPLIMIT + 1);
     }
-    QVariantMap reply;
-    reply.insert("Dest", QVariant(from->getName()));
-    reply.insert("Origin", QVariant(myName()));
-    reply.insert("HopLimit", QVariant(HOPLIMIT));
-    reply.insert("Type", QVariant("SearchReply"));
-    QVariantMap replyMessage;
-    replyMessage.insert("SearchReply", QVariant(query));
-    replyMessage.insert("MatchNames", QVariant(filenames));
-    replyMessage.insert("MatchIDs", QVariant(ids));
-    insertMessage(reply, replyMessage);
-    forwardMessage(reply, from, HOPLIMIT + 1);
 
     // decide whether to propagate
     budget = budget - 1;
@@ -236,7 +238,7 @@ void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *de
 	if (results->size() >= 10)
 	  searchTimer->stop();
 	qDebug() << filenames.at(i).toString();
-	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName(), true);
+	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName(), isFriend(from->getName()));
       }
     }
   } else {
@@ -478,8 +480,8 @@ void PeerList::sentMessage(QHostAddress host, quint16 port) {
   recipient->wait();
 }
 
-void PeerList::shareFile(QString filename) {
-  myOrigin->shareFile(filename);
+void PeerList::shareFile(QString filename, bool isPrivate) {
+  myOrigin->shareFile(filename, isPrivate);
 }
 
 QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
@@ -495,4 +497,8 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
   datagram.insert("Message", QVariant(buffer));
+}
+
+bool PeerList::isFriend(QString origin) {
+  return true;
 }

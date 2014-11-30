@@ -38,6 +38,7 @@ private:
   void handleBlockReply(QVariantMap&, Origin*, Origin*, quint32);
   void forwardMessage(QVariantMap&, Origin*, quint32);
   QVariantMap constructStatus();
+  bool isFriend(QString);
 public:
   PeerList(quint16, bool nf = false);
   Peer *add(QHostAddress, QString, quint16);
@@ -50,7 +51,7 @@ public:
   quint16 myPort();
   QString myName();
   quint32 mySeqNo();
-  void shareFile(QString);
+  void shareFile(QString, bool);
   void startDownload(QByteArray, QString, QString);
   void insertMessage(QVariantMap&, QVariantMap);
   QVariantMap extractMessage(QVariantMap&);
