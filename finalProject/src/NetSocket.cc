@@ -45,8 +45,8 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(postMessage(QString, QString, QString)));
       connect(peers, SIGNAL(newOrigin(QString)),
 	      this, SIGNAL(newOrigin(QString)));
-      connect(peers, SIGNAL(searchReply(QByteArray, QString, QString)),
-	      this, SIGNAL(searchReply(QByteArray, QString, QString)));
+      connect(peers, SIGNAL(searchReply(QByteArray, QString, QString, bool)),
+	      this, SIGNAL(searchReply(QByteArray, QString, QString, bool)));
       connect(peers, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 	      this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
       connect(peers, SIGNAL(receivedBlock(QByteArray, qint64)),
@@ -128,8 +128,12 @@ void NetSocket::searchMessage(QString search) {
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
-void NetSocket::shareFile(QString filename) {
+void NetSocket::shareFile(QString filename, bool isPrivate) {
   peers->shareFile(filename);
+}
+
+void NetSocket::filePrivate(QString filename, bool isPrivate) {
+
 }
 
 void NetSocket::requestTrust(QString peer) {

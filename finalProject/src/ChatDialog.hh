@@ -26,7 +26,8 @@ public slots:
   void newOrigin(QString);
   void originClicked(QListWidgetItem*);
   void openFileDialog();
-  void searchReply(QByteArray, QString, QString);
+  void fileClicked(QListWidgetItem*);
+  void searchReply(QByteArray, QString, QString, bool);
   void initiateSearch();
   void startDownload(QListWidgetItem*);
   void receivedBlocklist(QByteArray, qint64);
@@ -40,13 +41,14 @@ public slots:
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
-  void shareFile(QString);
+  void shareFile(QString, bool);
   void downloadFile(QByteArray, QString, QString);
   void search(QString);
   void requestTrust(QString);
   void trustApproved(QString);
   void requestFriend(QString);
   void friendApproved(QString);
+  void filePrivate(QString, bool);
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;
@@ -67,6 +69,8 @@ private:
   QMap<QByteArray, DownloadBox*> *downloads;
   void setPeerState(QString, QString);
   void setOriginState(QString, QString);
+  void setFileState(QString, QString);
+  void setResultState(QString, QString);
 };
 
 #endif

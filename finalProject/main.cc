@@ -60,14 +60,16 @@ int main(int argc, char **argv) {
 		   &sock, SLOT(addPeer(QString)));
   QObject::connect(&sock, SIGNAL(newOrigin(QString)),
 		   &dialog, SLOT(newOrigin(QString)));
-  QObject::connect(&dialog, SIGNAL(shareFile(QString)),
-		   &sock, SLOT(shareFile(QString)));
+  QObject::connect(&dialog, SIGNAL(shareFile(QString, bool)),
+		   &sock, SLOT(shareFile(QString, bool)));
+  QObject::connect(&dialog, SIGNAL(filePrivate(QString, bool)),
+		   &sock, SLOT(filePrivate(QString, bool)));
   QObject::connect(&dialog, SIGNAL(downloadFile(QByteArray, QString, QString)),
 		   &sock, SLOT(fileMessage(QByteArray, QString, QString)));
   QObject::connect(&dialog, SIGNAL(search(QString)),
 		   &sock, SLOT(searchMessage(QString)));
-  QObject::connect(&sock, SIGNAL(searchReply(QByteArray, QString, QString)),
-		   &dialog, SLOT(searchReply(QByteArray, QString, QString)));
+  QObject::connect(&sock, SIGNAL(searchReply(QByteArray, QString, QString, bool)),
+		   &dialog, SLOT(searchReply(QByteArray, QString, QString, bool)));
   QObject::connect(&sock, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 		   &dialog, SLOT(receivedBlocklist(QByteArray, qint64)));
   QObject::connect(&sock, SIGNAL(receivedBlock(QByteArray, qint64)),

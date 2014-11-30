@@ -58,6 +58,8 @@ ChatDialog::ChatDialog(bool nofwd) {
   connect(sharingResults, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
 	  this, SLOT(startDownload(QListWidgetItem*)));
   sharingFiles = new QListWidget(sharingBox);
+  connect(sharingFiles, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+	  this, SLOT(fileClicked(QListWidgetItem*)));
   sharingLayout = new QGridLayout(sharingBox);
   sharingLayout->addWidget(sharingInput, 0, 0, 1, 2);
   sharingLayout->addWidget(sharingSearch, 0, 2, 1, 1);
@@ -328,10 +330,64 @@ void ChatDialog::openFileDialog() {
   QFileDialog dialog(this);
   dialog.setFileMode(QFileDialog::ExistingFiles);
   if (dialog.exec()) {
+    QMessageBox msgBox;
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
     foreach (QString filename, dialog.selectedFiles()) {
       sharingFiles->addItem(filename);
-      emit shareFile(filename);
+      msgBox.setText(QString("Make %1 private?").arg(filename));
+      switch (msgBox.exec()) {
+      case QMessageBox::Yes:
+	setFileState(filename, "Private");
+	emit shareFile(filename, true);
+	break;
+      case QMessageBox::No:
+	setFileState(filename, "Public");
+	emit shareFile(filename, false);
+	break;
+      }
     }
+  }
+}
+
+void ChatDialog::setFileState(QString filename, QString state) {
+  QList<QListWidgetItem*> items = sharingFiles->findItems(filename, Qt::MatchExactly);
+  if (items.empty())
+    sharingFiles->addItem(filename);
+  items = sharingFiles->findItems(filename, Qt::MatchExactly);
+
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Public") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    } else if (state == "Private") {
+      item->setBackground(QBrush(QColor("#9B59B6")));
+    }
+  }
+}
+
+void ChatDialog::fileClicked(QListWidgetItem *item) {
+  QString state = item->data(Qt::UserRole).toString();
+  QString filename = item->text();
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  if (state == "Public") {
+    msgBox.setText(QString("Are you sure you want to make %1 private?").arg(filename));
+  } else if (state == "Private") {
+    msgBox.setText(QString("Are you sure you want to make %1 public?").arg(filename));
+  }
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    if (state == "Public") {
+      setFileState(filename, "Private");
+      emit filePrivate(filename, true);
+    } else if (state == "Private") {
+      setFileState(filename, "Public");
+      emit filePrivate(filename, false);
+    }    
+    break;
+    // don't do anything if no
   }
 }
 
@@ -345,11 +401,31 @@ void ChatDialog::initiateSearch() {
   emit search(query);
 }
 
-void ChatDialog::searchReply(QByteArray id, QString filename, QString origin) {
+void ChatDialog::searchReply(QByteArray id, QString filename, QString origin, bool isPrivate) {
   results->insert(id, QPair<QString, QString>(filename, origin));
   sharingResults->addItem(filename);
+  if (isPrivate)
+    setResultState(filename, "Private");
+  else
+    setResultState(filename, "Public");
   QListWidgetItem *widget = sharingResults->item(sharingResults->count() - 1);
   widget->setData(Qt::UserRole, QVariant(id));
+}
+
+void ChatDialog::setResultState(QString filename, QString state) {
+  QList<QListWidgetItem*> items = sharingResults->findItems(filename, Qt::MatchExactly);
+  if (items.empty())
+    sharingResults->addItem(filename);
+  items = sharingResults->findItems(filename, Qt::MatchExactly);
+
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Public") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    } else if (state == "Private") {
+      item->setBackground(QBrush(QColor("#9B59B6")));
+    }
+  }
 }
 
 void ChatDialog::startDownload(QListWidgetItem *item) {

@@ -236,7 +236,7 @@ void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *de
 	if (results->size() >= 10)
 	  searchTimer->stop();
 	qDebug() << filenames.at(i).toString();
-	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName());
+	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName(), true);
       }
     }
   } else {

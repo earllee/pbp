@@ -63,7 +63,7 @@ signals:
   void sendMessage(QHostAddress, quint16, QVariantMap);
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
-  void searchReply(QByteArray, QString, QString);
+  void searchReply(QByteArray, QString, QString, bool);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
   void newPeer(QString);
