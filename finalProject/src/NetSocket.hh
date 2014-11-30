@@ -17,6 +17,7 @@ public:
 private:
   int myPortMin, myPortMax;
   PeerList *peers;
+
   QString stringify(QVariantMap);
   QTimer *routeTimer;
 public slots:
@@ -28,8 +29,10 @@ public slots:
   void addPeer(QString);
   void routeRumor();
   void shareFile(QString);
-  void requestTrust(QString); // send a trust request
-  void trustApproved(QString); // reply to trust request
+  void requestTrust(QString); // send a trust request, of form host:port; 
+                              // slot from dialog; host:port
+  void trustApproved(QString); // slot from dialog; host:port
+                               // reply to approveTrust()
 signals:
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
@@ -37,9 +40,16 @@ signals:
   void searchReply(QByteArray, QString, QString);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
-  void approveTrust(QString); // ask to approve
-  void acceptedTrust(QString); // requestee accepts
-  void messageable(QString); // received key for that peer
+
+  // 
+  void approveTrust(QString); // ask to approve in chat; signal to dialog
+                              // Just received a req from else; host:port
+ 
+  void acceptedTrust(QString); // requestee accepts; signal to dialog; host:port
+                               // Accepts our own req; reply to your
+                               // local req; host:port; second to reqTrust()
+  void messageable(QString); // received key for that peer; signal to dialog
+                             // origin
 };
 
 #endif

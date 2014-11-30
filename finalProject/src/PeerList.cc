@@ -96,6 +96,21 @@ QVariantMap PeerList::constructStatus() {
   return datagram;
 }
 
+QVariantMap PeerList::constructTrustMsg() {
+  QVariantMap datagram;
+
+  QVariantMap msg;
+
+  QMap<QString, QByteArray>::iterator it; 
+  for (it = msgableOrigins.begin(); it != msgableOrigins.end(); ++it) {
+    msg[it.key()] = it.value();
+  }
+
+  insertMessage(datagram, msg);
+  datagram.insert("Type", QVariant("Trust"));
+  return datagram; 
+}
+
 Peer *PeerList::add(QHostAddress host, QString domain, quint16 port) {
   Peer *toAdd = new Peer(host, domain, port);
   QString peerString = QString("%1:%2").arg(host.toString()).arg(port);
@@ -180,6 +195,42 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
     handleBlockRequest(datagram, from, to, hopLimit);
   else if (msgType == "BlockReply")
     handleBlockReply(datagram, from, to, hopLimit);
+  else if (msgType == "Trust")
+    handleTrust(datagram, sender);
+}
+
+// Sends trust request to given peer string
+void PeerList::requestTrust(QString peer) {
+    Peer * recvingPeer = peers->value(peer);
+    QVariantMap datagram = constructTrustMsg();
+    emit sendMessage(recvingPeer->getHost(), recvingPeer->getPort(), datagram); 
+
+    trustedPeers[peer] = 1;
+}
+
+
+void PeerList::handleTrust(QVariantMap &datagram, Peer *sender) {
+  QString peerStr = QString("%1:%2")
+    .arg(sender->getHost().toString()).arg(sender->getPort());
+  
+  if (trustedPeers[peerStr] == 1) { // Pending
+    emit acceptedTrust(peerStr);
+    trustedPeers[peerStr] = 2;
+    processNewKeys(extractMessage(datagram), sender);
+  } else if (trustedPeers[peerStr] == 2) { // trusted
+    processNewKeys(extractMessage(datagram), sender);
+  } else { // 0 or something else, initial remote req
+    pendingTrustMsgs[peerStr] = extractMessage(datagram);
+    emit approveTrust(peerStr);
+  }
+
+  // Handle trust logic here
+  // Signal to NetSocket -> ChatDialog that trust msg has been recved
+  // Allow ChatDialog to handle situation
+}
+
+void PeerList::processNewKeys(QVariantMap keys, Peer * peer) {
+   // if () 
 }
 
 void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 budget) {
@@ -490,9 +541,33 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
   return message;
 }
 
+/*
+QMap<QString, QCA::PublicKey> PeerList::extractTrustMessage(QVariantMap &datagram) {
+  QByteArray messageData = datagram.value("Message").toByteArray();
+  QDataStream stream(&messageData, QIODevice::ReadOnly);
+  QMap<QString, QCA::PublicKey> message;
+  stream >> message;
+  return message;
+}
+
+*/
+
 void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
   datagram.insert("Message", QVariant(buffer));
 }
+
+/* 
+
+void PeerList::insertMessage(QVariantMap &datagram, 
+QMap<QString, QCA::PublicKey> message) 
+{
+  QByteArray buffer;
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  stream << message;
+  datagram.insert("Message", QVariant(buffer));
+}
+
+*/
