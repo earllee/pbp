@@ -12,6 +12,7 @@
 #include <QPushButton>
 #include <QFileDialog>
 #include <QByteArray>
+#include <QMessageBox>
 #include <QDebug>
 
 ChatDialog::ChatDialog(bool nofwd) {
@@ -23,11 +24,15 @@ ChatDialog::ChatDialog(bool nofwd) {
   peerInput = new QLineEdit(this);
   peerInput->setPlaceholderText("Add a peer");
   connect(peerInput, SIGNAL(returnPressed()),
-	  this, SLOT(newPeer()));
+	  this, SLOT(addPeer()));
 
   originSelect = new QListWidget(this);
   connect(originSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
-	  this, SLOT(openTab(QListWidgetItem*)));
+	  this, SLOT(originClicked(QListWidgetItem*)));
+
+  peerSelect = new QListWidget(this);
+  connect(peerSelect, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+	  this, SLOT(peerClicked(QListWidgetItem*)));
 
   tabs = new QTabWidget();
   broadcast = new ChatTab("");
@@ -66,47 +71,25 @@ ChatDialog::ChatDialog(bool nofwd) {
   // For Qt widget and layout concepts see:
   // http://doc.qt.nokia.com/4.7-snapshot/widgets-and-layouts.html
   layout = new QGridLayout(this);
-  QLabel *label = new QLabel(this);
-  label->setText("Origin List");
+  QLabel *originLabel = new QLabel(this);
+  originLabel->setText("Origin List");
+  QLabel *peerLabel = new QLabel(this);
+  peerLabel->setText("Peer List");
   if (nofwd) {
-    layout->addWidget(label, 0, 0);
+    layout->addWidget(originLabel, 0, 0);
     layout->addWidget(originSelect, 1, 0);
     layout->addWidget(peerInput, 2, 0);
   } else {
     layout->addWidget(tabs, 0, 0, 3, 1);
-    layout->addWidget(label, 0, 1);
-    layout->addWidget(originSelect, 1, 1);
-    layout->addWidget(peerInput, 2, 1);
+    layout->addWidget(originLabel, 0, 1);
+    layout->addWidget(originSelect, 1, 1, 2, 1);
+    layout->addWidget(peerLabel, 0, 2);
+    layout->addWidget(peerSelect, 1, 2);
+    layout->addWidget(peerInput, 2, 2);
     layout->addWidget(sharingBox, 3, 0, 1, -1);
   }
 
   broadcast->focus();
-}
-
-ChatDialog::~ChatDialog() {
-  delete broadcast;
-  delete peerInput;
-  delete originSelect;
-  foreach(ChatTab *c, chats->values()) {
-    delete c;
-  }
-  delete chats;
-
-  delete tabs;
-  delete sharingButton;
-  delete sharingSearch;
-  delete sharingInput;
-  delete sharingResults;
-  delete sharingFiles;
-  delete sharingLayout;
-  delete sharingBox;
-  delete layout;
-  delete results;
-  delete colors;
-  foreach(DownloadBox *d, downloads->values()) {
-    delete d;
-  }
-  delete downloads;
 }
 
 void ChatDialog::postMessage(QString name, QString msg, QString dest) {
@@ -131,14 +114,65 @@ void ChatDialog::postMessage(QString name, QString msg, QString dest) {
   }
 }
 
-void ChatDialog::newPeer() {
+void ChatDialog::addPeer() {
   QString peer = peerInput->text();
   peerInput->clear();
+  peerSelect->addItem(peer);
+  setPeerState(peer, "Untrusted");
   emit addPeer(peer);
 }
 
 void ChatDialog::newOrigin(QString name) {
   originSelect->addItem(name);
+  setOriginState(name, "Connected");
+  // testing messageable
+  messageable(name);
+}
+
+void ChatDialog::messageable(QString name) {
+  setOriginState(name, "Messageable");
+  QMessageBox msgBox;
+  msgBox.setText(QString("%1 has been added to your web of trust.").arg(name));
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.setDefaultButton(QMessageBox::Ok);
+  msgBox.exec();
+}
+
+void ChatDialog::setOriginState(QString name, QString state) {
+  QList<QListWidgetItem*> items = originSelect->findItems(name, Qt::MatchExactly);
+  if (items.empty())
+    originSelect->addItem(name);
+  items = originSelect->findItems(name, Qt::MatchExactly);
+
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Connected") {
+      item->setBackground(QBrush(QColor("#95A5A6")));
+    } else if (state == "Messageable") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    }
+  }
+}
+
+void ChatDialog::originClicked(QListWidgetItem *item) {
+  QString state = item->data(Qt::UserRole).toString();
+  QString name = item->text();
+  if (state == "Connected") {
+    QMessageBox msgBox;
+    msgBox.setText(QString("%1 is not in your web of trust.").arg(name));
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
+  } else if (state == "Messageable") {
+    ChatTab *tab;
+    QString name = name;
+    if(chats->contains(name))
+      tab = chats->value(name);
+    else
+      tab = newChatTab(name);
+    tabs->setCurrentWidget(tab);
+    tab->focus();
+  }
 }
 
 ChatTab *ChatDialog::newChatTab(QString name) {
@@ -150,15 +184,90 @@ ChatTab *ChatDialog::newChatTab(QString name) {
   return tab;
 }
 
-void ChatDialog::openTab(QListWidgetItem *item) {
-  ChatTab *tab;
-  QString name = item->text();
-  if(chats->contains(name))
-    tab = chats->value(name);
-  else
-    tab = newChatTab(name);
-  tabs->setCurrentWidget(tab);
-  tab->focus();
+void ChatDialog::newPeer(QString name) {
+  peerSelect->addItem(name);
+  setPeerState(name, "Untrusted");
+}
+
+void ChatDialog::peerClicked(QListWidgetItem *item) {
+  QString state = item->data(Qt::UserRole).toString();
+  QString peer = item->text();
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  if (state == "Untrusted") {
+    msgBox.setText(QString("Are you sure you want to send a trust request to this peer (%1)?").arg(peer));
+  } else if (state == "Rejected") {
+    msgBox.setText(QString("Are you sure you want to accept trust from this peer (%1) even though you rejected it earlier?").arg(peer));
+  } else if (state == "Pending") {
+    msgBox.setText(QString("Are you sure you want to resend a trust request to this peer (%1)?").arg(peer));
+  } else if (state == "Trusted") {
+    msgBox.setText(QString("You already trust this peer (%1).").arg(peer));
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
+    return;
+  }
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    if (state == "Untrusted") {
+      setPeerState(peer, "Pending");
+      emit requestTrust(peer);
+    } else if (state == "Rejected") {
+      setPeerState(peer, "Trusted");
+      emit trustApproved(peer);
+    } else if (state == "Pending") {
+      setPeerState(peer, "Pending");
+      emit requestTrust(peer);
+    }    
+    break;
+    // don't do anything if no
+  }
+}
+
+void ChatDialog::approveTrust(QString peer) {
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  msgBox.setText(QString("%1 sent you a trust request. Accept?").arg(peer));
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    setPeerState(peer, "Trusted");
+    emit trustApproved(peer);
+    break;
+  case QMessageBox::No:
+    setPeerState(peer, "Rejected");
+    break;
+  }
+}
+
+void ChatDialog::acceptedTrust(QString peer) {
+  setPeerState(peer, "Trusted");
+  QMessageBox msgBox;
+  msgBox.setText(QString("%1 accepted your trust request.").arg(peer));
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.setDefaultButton(QMessageBox::Ok);
+  msgBox.exec();
+}
+
+void ChatDialog::setPeerState(QString peer, QString state) {
+  QList<QListWidgetItem*> items = peerSelect->findItems(peer, Qt::MatchExactly);
+  if (items.empty())
+    peerSelect->addItem(peer);
+  items = peerSelect->findItems(peer, Qt::MatchExactly);
+
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Untrusted") {
+      item->setBackground(QBrush(QColor("#95A5A6")));
+    } else if (state == "Rejected") {
+      item->setBackground(QBrush(QColor("#E74C3C")));
+    } else if (state == "Pending") {
+      item->setBackground(QBrush(QColor("#3498DB")));
+    } else if (state == "Trusted") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    }
+  }
 }
 
 void ChatDialog::openFileDialog() {

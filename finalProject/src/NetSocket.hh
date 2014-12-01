@@ -28,12 +28,18 @@ public slots:
   void addPeer(QString);
   void routeRumor();
   void shareFile(QString);
+  void requestTrust(QString); // send a trust request
+  void trustApproved(QString); // reply to trust request
 signals:
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
+  void newPeer(QString);
   void searchReply(QByteArray, QString, QString);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
+  void approveTrust(QString); // ask to approve
+  void acceptedTrust(QString); // requestee accepts
+  void messageable(QString); // received key for that peer
 };
 
 #endif

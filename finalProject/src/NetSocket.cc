@@ -41,11 +41,6 @@ bool NetSocket::bind(bool nofwd) {
       peers = new PeerList(p, nofwd);
       connect(peers, SIGNAL(sendMessage(QHostAddress, quint16, QVariantMap)),
 	      this, SLOT(sendMessage(QHostAddress, quint16, QVariantMap)));
-      for (int port = myPortMin; port <= myPortMax; port++) {
-	if (port != p) {
-	  peers->add(QHostAddress::LocalHost, port);
-	}
-      }
       connect(peers, SIGNAL(postMessage(QString, QString, QString)),
 	      this, SIGNAL(postMessage(QString, QString, QString)));
       connect(peers, SIGNAL(newOrigin(QString)),
@@ -56,6 +51,12 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
       connect(peers, SIGNAL(receivedBlock(QByteArray, qint64)),
 	      this, SIGNAL(receivedBlock(QByteArray, qint64)));
+      connect(peers, SIGNAL(newPeer(QString)),
+	      this, SIGNAL(newPeer(QString)));
+      for (int port = myPortMin; port <= myPortMax; port++) {
+	if (port != p)
+	  peers->add(QHostAddress::LocalHost, port);
+      }
       connect(this, SIGNAL(readyRead()),
 	      this, SLOT(receiveMessage()));
       routeTimer->start();
@@ -129,6 +130,16 @@ void NetSocket::searchMessage(QString search) {
 
 void NetSocket::shareFile(QString filename) {
   peers->shareFile(filename);
+}
+
+void NetSocket::requestTrust(QString peer) {
+  // placeholder to auto accept
+  emit acceptedTrust(peer);
+  emit approveTrust("test");
+}
+
+void NetSocket::trustApproved(QString peer) {
+  // send response to requesting peer
 }
 
 void NetSocket::routeRumor() {
