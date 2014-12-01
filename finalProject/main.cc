@@ -16,20 +16,25 @@ int testEncryption() {
   QVariantMap map;
   map.insert("Message", msg);
   
-  QCA::PrivateKey *privKeyA = new QCA::PrivateKey();
-  QCA::PrivateKey *privKeyB = new QCA::PrivateKey();
-  QCA::PublicKey *pubKeyA = new QCA::PublicKey(*privKeyA);
-  QCA::PublicKey *pubKeyB = new QCA::PublicKey(*privKeyB);
+  QCA::PrivateKey privKeyA = QCA::KeyGenerator().createRSA(1024);
+  QCA::PrivateKey privKeyB = QCA::KeyGenerator().createRSA(1024);
+  QCA::PublicKey pubKeyA = privKeyA.toPublicKey();
+  QCA::PublicKey pubKeyB = privKeyB.toPublicKey();
 
   qDebug() << "Original Map:\n" << map;
 
-  QByteArray encryptedMap = encryptMap(map, *pubKeyA, *privKeyB);
-  QVariantMap decryptedMap = decryptMap(encryptedMap, *pubKeyB, *privKeyA);
+  QByteArray encryptedMap = encryptMap(map, pubKeyA, privKeyB);
+
+  QDataStream mapStream(&encryptedMap, QIODevice::ReadOnly);
+  QVariantMap deserializedEncryptedMap;
+  mapStream >> deserializedEncryptedMap;
+  qDebug() << "Encrypted Map:\n" << deserializedEncryptedMap;
+
+  QVariantMap decryptedMap = decryptMap(encryptedMap, pubKeyB, privKeyA);
 
   qDebug() << "\n\nDecrypted Map:\n" << decryptedMap;
 
   exit(0);
-
 }
 
 int main(int argc, char **argv) {
@@ -46,6 +51,7 @@ int main(int argc, char **argv) {
     if(s == "-test")
       testEncryption();
   }
+  testEncryption();
 
   // Create an initial chat dialog window
   ChatDialog dialog(nofwd);

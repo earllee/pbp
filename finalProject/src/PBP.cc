@@ -13,10 +13,13 @@
 //   privKey (QCA::PrivateKey): private key of sender
 // Returns:
 //   (QByteArray): byte array of encrypted map
+//      (QByteArray) Message: cipher encrypted byte array of message
+//      (QByteArray) Signature: signature of hashed byte array of message
+//      (QByteArray) Key: encrypted sym key
+//      (QByteArray) iV: initialization vector for cipher
 QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Initialize encryption tools
-    QCA::Initializer init;
     QCA::SymmetricKey symKey(SYMMETRIC_KEY_SIZE);
     QCA::InitializationVector iV(16); 
     if(!QCA::isSupported("aes128-cbc-pkcs7"))
@@ -30,7 +33,7 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
     // Convert data map to byte array for encryption
     QByteArray buffer;
     QDataStream stream(&buffer, QIODevice::WriteOnly);
-    stream << data["Message"];
+    stream << data["Message"].toString();
 
     // Encrypt data
     QCA::SecureArray encryptedMessage = cipher.process(buffer);
@@ -41,9 +44,19 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
 
     // Create signature
     QCA::SecureArray dataDigest = QCA::Hash("sha1").hash(buffer);
+    if (!privKey.canSign()) {
+        qDebug() << "Can't sign message.";
+        data.insert("Success", false);
+    }
+
     QByteArray signature = privKey.signMessage(dataDigest, QCA::EMSA3_MD5);
 
     // Encrypt symmetric key
+    if (!pubKey.canEncrypt()) {
+        qDebug() << "Can't encrypt message.";
+        data.insert("Success", false);
+    }
+
     QCA::SecureArray encryptedSymKey = pubKey.encrypt(symKey, QCA::EME_PKCS1_OAEP);
     
     // Bundle data and encryption tokens into QVariantMap
@@ -55,18 +68,19 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
         data.insert("Success", true);
 
     // Convert to byte array
-    buffer.clear();
-    stream << data;
+    QByteArray encryptedMap;
+    QDataStream encryptedMapStream(&encryptedMap, QIODevice::WriteOnly);
+    encryptedMapStream << data;
 
-    return buffer;
+    return encryptedMap;
 }
 
 QVariantMap decryptMap(QByteArray datagram, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Convert datagram into QVariantMap
-    QDataStream stream(&datagram, QIODevice::ReadOnly);
+    QDataStream dataStream(&datagram, QIODevice::ReadOnly);
     QVariantMap data;
-    stream >> data;
+    dataStream >> data;
 
     // Do some initial checks
     if (!data["Success"].toBool())
@@ -94,21 +108,26 @@ QVariantMap decryptMap(QByteArray datagram, QCA::PublicKey pubKey, QCA::PrivateK
             QCA::Decode,
             symKey, iV);
 
-    QCA::SecureArray decryptedData = cipher.process(data["Message"].toByteArray());
+    QByteArray decryptedData = cipher.process(data["Message"].toByteArray()).toByteArray();
     if (!cipher.ok()) {
         qDebug() << "decryptData: cipher.update() failed\n";
         data.insert("Success", false);
         return data;
     }
+    QCA::SecureArray decryptedDataDigest = QCA::Hash("sha1").hash(decryptedData);
+
+    QDataStream decryptedDataStream(&decryptedData, QIODevice::ReadOnly);
+    QString decryptedMessage;
+    decryptedDataStream >> decryptedMessage;
 
     // Check signature
-    if (!pubKey.verifyMessage(decryptedData, data["Signature"].toByteArray(), QCA::EMSA3_MD5)) {
-        qDebug() << "decryptData: veryMessage() failed\n";
+    if (!pubKey.verifyMessage(decryptedDataDigest, data["Signature"].toByteArray(), QCA::EMSA3_MD5)) {
+        qDebug() << "decryptData: verifyMessage() failed\n";
         data.insert("Success", false);
         return data;
     }
 
-    data.insert("Message", decryptedData.toByteArray());
+    data.insert("Message", decryptedMessage);
     data.remove("Key");
     data.remove("Signature");
     data.remove("iV");
