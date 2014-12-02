@@ -42,7 +42,7 @@ private:
    * */ 
   Origin *getOrigin(QString, Peer*); 
   Origin *getOrigin(QString);
-  Origin *addOrigin(QString, Peer*);
+  Origin *addOrigin(QString, Peer*); // name, next hop peer
   
   /* Various methods to fetch Peer(s) */
   Peer *get(QHostAddress, quint16); // Get specified Peer
@@ -64,6 +64,7 @@ private:
   void forwardMessage(QVariantMap&, Origin*, quint32);
   QVariantMap constructStatus();
   QVariantMap constructTrustMsg();
+  QVariantMap constructTrustMsg(QVariantMap);
 
   // To be called when adding keys
   void processNewKeys(QVariantMap, Peer *);
@@ -89,12 +90,11 @@ public:
   void requestTrust(QString);
 
   void insertMessage(QVariantMap&, QVariantMap); /* Insert second arg into first */
-  // void insertMessage(QVariantMap&, QMap<QString, QCA::PublicKey>); /* Insert second arg into first */
+  
   QVariantMap extractMessage(QVariantMap&); 
-  // QMap<QString, QCA::PublicKey> extractTrustMessage(QVariantMap&); 
 
   // To be called after trust approved
-  void processPendingsKeys(QString);
+  void processPendingKeys(QString);
 public slots:
   void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16); // Merely sets the wait timer

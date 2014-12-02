@@ -111,6 +111,17 @@ QVariantMap PeerList::constructTrustMsg() {
   return datagram; 
 }
 
+QVariantMap PeerList::constructTrustMsg(QVariantMap newKeys) {
+  QVariantMap datagram;
+
+  QVariantMap msg;
+  
+  insertMessage(datagram, newKeys);
+  datagram.insert("Type", QVariant("Trust"));
+  return datagram; 
+}
+
+
 Peer *PeerList::add(QHostAddress host, QString domain, quint16 port) {
   Peer *toAdd = new Peer(host, domain, port);
   QString peerString = QString("%1:%2").arg(host.toString()).arg(port);
@@ -208,7 +219,7 @@ void PeerList::requestTrust(QString peer) {
     trustedPeers[peer] = 1;
 }
 
-
+// Called upon recving trust msg
 void PeerList::handleTrust(QVariantMap &datagram, Peer *sender) {
   QString peerStr = QString("%1:%2")
     .arg(sender->getHost().toString()).arg(sender->getPort());
@@ -223,14 +234,44 @@ void PeerList::handleTrust(QVariantMap &datagram, Peer *sender) {
     pendingTrustMsgs[peerStr] = extractMessage(datagram);
     emit approveTrust(peerStr);
   }
-
-  // Handle trust logic here
-  // Signal to NetSocket -> ChatDialog that trust msg has been recved
-  // Allow ChatDialog to handle situation
 }
 
+// Called to process a msg full of keys
 void PeerList::processNewKeys(QVariantMap keys, Peer * peer) {
-   // if () 
+    for (QVariantMap::iterator it = keys.begin(); it != keys.end(); ++it) {
+        if ( !origins->contains(it.key()) ) { // New Origin in general
+            addOrigin(it.key(), peer);
+        }
+
+        QVariantMap deltaKeys;
+        if ( !msgableOrigins.contains(it.key()) ) { // new msgable origin
+            deltaKeys[it.key()] = it.value();
+            msgableOrigins[it.key()] = it.value().toByteArray();
+            emit messagable(it.key());
+        }
+        if ( !deltaKeys.empty() ) { // broadcast to everone else if new keys
+            QMap<QString, int>::iterator jt;
+            QVariantMap datagram = constructTrustMsg(deltaKeys);
+
+            for (jt = trustedPeers.begin(); jt != trustedPeers.end(); ++jt) {
+                if (jt.value() == 2) {
+                    Peer * recvingPeer = peers->value(jt.key());
+                    // Construct trust msg
+                    emit sendMessage(recvingPeer->getHost(), 
+                        recvingPeer->getPort(), datagram); 
+                }
+            }
+        }
+    }
+}
+
+// Called when dialog confirms remote requester, fetch msg and call procnewkeys
+void PeerList::processPendingKeys(QString peerStr) {
+    trustedPeers[peerStr] = 2;
+    Peer * peer = peers->value(peerStr);
+    QVariantMap newKeys = pendingTrustMsgs[peerStr];
+
+    processNewKeys(newKeys, peer);
 }
 
 void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 budget) {
