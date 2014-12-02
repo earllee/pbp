@@ -68,6 +68,8 @@ private:
 
   // To be called when adding keys
   void processNewKeys(QVariantMap, Peer *);
+
+  QCA::PublicKey getKeyByOrigin(QString);
 public:
   PeerList(quint16, bool nf = false);
   Peer *getMe();

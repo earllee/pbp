@@ -210,6 +210,10 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
     handleTrust(datagram, sender);
 }
 
+QCA::PublicKey PeerList::getKeyByOrigin(QString orig) {
+    return QCA::PublicKey::fromDER(msgableOrigins[orig]);
+}
+
 // Sends trust request to given peer string
 void PeerList::requestTrust(QString peer) {
     Peer * recvingPeer = peers->value(peer);
