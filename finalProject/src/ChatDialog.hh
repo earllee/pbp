@@ -32,17 +32,17 @@ public slots:
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
   void peerClicked(QListWidgetItem*);
-  void approveTrust(QString);
-  void acceptedTrust(QString);
-  void messageable(QString);
+  void approveTrust(QString); // expects host:port
+  void acceptedTrust(QString); // expects host:port
+  void messageable(QString); // expects origin name
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
   void shareFile(QString);
   void downloadFile(QByteArray, QString, QString);
   void search(QString);
-  void requestTrust(QString);
-  void trustApproved(QString);
+  void requestTrust(QString); // sends host:port
+  void trustApproved(QString); // sends host:port
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;

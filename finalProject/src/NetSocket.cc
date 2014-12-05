@@ -53,6 +53,13 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(receivedBlock(QByteArray, qint64)));
       connect(peers, SIGNAL(newPeer(QString)),
 	      this, SIGNAL(newPeer(QString)));
+      connect(peers, SIGNAL(approveTrust(QString)), 
+              this, SIGNAL(approveTrust(QString)));
+      connect(peers, SIGNAL(acceptedTrust(QString)), 
+              this, SIGNAL(acceptedTrust(QString)));
+      connect(peers, SIGNAL(messagable(QString)), 
+              this, SIGNAL(messagable(QString)));
+                 
       for (int port = myPortMin; port <= myPortMax; port++) {
 	if (port != p)
 	  peers->add(QHostAddress::LocalHost, port);
@@ -132,14 +139,15 @@ void NetSocket::shareFile(QString filename) {
   peers->shareFile(filename);
 }
 
+// Construct, send message to given peerStr
 void NetSocket::requestTrust(QString peer) {
-  // placeholder to auto accept
-  emit acceptedTrust(peer);
-  emit approveTrust("test");
+  peers->requestTrust(peer); 
 }
 
 void NetSocket::trustApproved(QString peer) {
+  peers->processPendingKeys(peer);
   // send response to requesting peer
+  // Let PeerList know that we may process the keys now of given peer
 }
 
 void NetSocket::routeRumor() {
