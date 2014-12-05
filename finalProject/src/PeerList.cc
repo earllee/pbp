@@ -57,6 +57,8 @@ PeerList::PeerList(quint16 port, bool nf) {
 
   privKey = QCA::KeyGenerator().createRSA(1024);
   pubKey = privKey.toPublicKey();
+  
+  trustedPeers[myOrigin->getName()] = pubKey.toDER();
 }
 
 Origin *PeerList::getOrigin(QString name, Peer *sender) {
