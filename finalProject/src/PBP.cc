@@ -31,6 +31,7 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
             symKey, iV);
 
     // Convert data map to byte array for encryption
+    // TODO: No need to convert. Message is already QByteArray.
     QByteArray buffer;
     QDataStream stream(&buffer, QIODevice::WriteOnly);
     stream << data["Message"].toString();
@@ -78,6 +79,7 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
 QVariantMap decryptMap(QByteArray datagram, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Convert datagram into QVariantMap
+    // TODO: No need to convert, we are passed in a map.
     QDataStream dataStream(&datagram, QIODevice::ReadOnly);
     QVariantMap data;
     dataStream >> data;
@@ -117,6 +119,7 @@ QVariantMap decryptMap(QByteArray datagram, QCA::PublicKey pubKey, QCA::PrivateK
     QCA::SecureArray decryptedDataDigest = QCA::Hash("sha1").hash(decryptedData);
 
     QDataStream decryptedDataStream(&decryptedData, QIODevice::ReadOnly);
+    // TODO: Convert to map instead of string.
     QString decryptedMessage;
     decryptedDataStream >> decryptedMessage;
 
