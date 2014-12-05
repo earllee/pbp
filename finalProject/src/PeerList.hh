@@ -17,6 +17,8 @@ private:
   Origin *myOrigin;
   QTimer *entropyTimer;
   bool nofwd;
+  QCA::PrivateKey privKey;
+  QCA::PublicKey pubKey;
   
   /* Structures to hold the peers and origins, updated periodically */
   QMap<QString, Peer*> *peers;
@@ -91,9 +93,8 @@ public:
   // Send trust request to given peerstring
   void requestTrust(QString);
 
-  void insertMessage(QVariantMap&, QVariantMap); /* Insert second arg into first */
-  
-  QVariantMap extractMessage(QVariantMap&); 
+  void insertMessage(QVariantMap&, QVariantMap, bool encrypt = false); /* Insert second arg into first */
+  QVariantMap extractMessage(QVariantMap&, bool decrypt = false);
 
   // To be called after trust approved
   void processPendingKeys(QString);
@@ -112,7 +113,7 @@ signals:
   void receivedBlock(QByteArray, qint64);
   void newPeer(QString); // Signal to NetSocket to UI; QString is host:port
   // Using method QString("%1:%2").arg(host.toString()).arg(port);
-  void messagable(QString);
+  void messageable(QString);
   void acceptedTrust(QString);
   void approveTrust(QString);
 };

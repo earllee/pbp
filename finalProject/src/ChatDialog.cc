@@ -125,8 +125,6 @@ void ChatDialog::addPeer() {
 void ChatDialog::newOrigin(QString name) {
   originSelect->addItem(name);
   setOriginState(name, "Connected");
-  // testing messageable
-  messageable(name);
 }
 
 void ChatDialog::messageable(QString name) {

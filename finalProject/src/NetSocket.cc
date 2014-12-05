@@ -57,8 +57,8 @@ bool NetSocket::bind(bool nofwd) {
               this, SIGNAL(approveTrust(QString)));
       connect(peers, SIGNAL(acceptedTrust(QString)), 
               this, SIGNAL(acceptedTrust(QString)));
-      connect(peers, SIGNAL(messagable(QString)), 
-              this, SIGNAL(messagable(QString)));
+      connect(peers, SIGNAL(messageable(QString)), 
+              this, SIGNAL(messageable(QString)));
                  
       for (int port = myPortMin; port <= myPortMax; port++) {
 	if (port != p)
@@ -109,7 +109,7 @@ void NetSocket::localMessage(QString text, QString dest) {
     datagram.insert("HopLimit", QVariant(HOPLIMIT));
     datagram.insert("Type", QVariant("Private"));
   }
-  peers->insertMessage(datagram, message);
+  peers->insertMessage(datagram, message, true);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -121,7 +121,7 @@ void NetSocket::fileMessage(QByteArray hash, QString filename, QString dest) {
   datagram.insert("HopLimit", QVariant(HOPLIMIT));
   datagram.insert("Type", QVariant("BlockRequest"));
   message.insert("BlockRequest", QVariant(hash));
-  peers->insertMessage(datagram, message);
+  peers->insertMessage(datagram, message, true);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 

@@ -1,5 +1,6 @@
 #include <unistd.h>
 
+#include <QtCrypto>
 #include <QHostAddress>
 #include <QTimer>
 #include <QTime>
@@ -8,6 +9,7 @@
 #include <QFileInfo>
 #include <Peer.hh>
 #include <PeerList.hh>
+#include <PBP.hh>
 
 QVector<QString> POKEMON = QVector<QString>() << "Bulbasaur" << "Ivysaur" << "Venusaur" << "Charmander" << "Charmeleon" << "Charizard" << "Squirtle" << "Wartortle" << "Blastoise" << "Caterpie" << "Metapod" << "Butterfree" << "Weedle" << "Kakuna" << "Beedrill" << "Pidgey" << "Pidgeotto" << "Pidgeot" << "Rattata" << "Raticate" << "Spearow" << "Fearow" << "Ekans" << "Arbok" << "Pikachu" << "Raichu" << "Sandshrew" << "Sandslash" << "Nidoran♀" << "Nidorina" << "Nidoqueen" << "Nidoran♂" << "Nidorino" << "Nidoking" << "Clefairy" << "Clefable" << "Vulpix" << "Ninetales" << "Jigglypuff" << "Wigglytuff" << "Zubat" << "Golbat" << "Oddish" << "Gloom" << "Vileplume" << "Paras" << "Parasect" << "Venonat" << "Venomoth" << "Diglett" << "Dugtrio" << "Meowth" << "Persian" << "Psyduck" << "Golduck" << "Mankey" << "Primeape" << "Growlithe" << "Arcanine" << "Poliwag" << "Poliwhirl" << "Poliwrath" << "Abra" << "Kadabra" << "Alakazam" << "Machop" << "Machoke" << "Machamp" << "Bellsprout" << "Weepinbell" << "Victreebel" << "Tentacool" << "Tentacruel" << "Geodude" << "Graveler" << "Golem" << "Ponyta" << "Rapidash" << "Slowpoke" << "Slowbro" << "Magnemite" << "Magneton" << "Farfetch'd" << "Doduo" << "Dodrio" << "Seel" << "Dewgong" << "Grimer" << "Muk" << "Shellder" << "Cloyster" << "Gastly" << "Haunter" << "Gengar" << "Onix" << "Drowzee" << "Hypno" << "Krabby" << "Kingler" << "Voltorb" << "Electrode" << "Exeggcute" << "Exeggutor" << "Cubone" << "Marowak" << "Hitmonlee" << "Hitmonchan" << "Lickitung" << "Koffing" << "Weezing" << "Rhyhorn" << "Rhydon" << "Chansey" << "Tangela" << "Kangaskhan" << "Horsea" << "Seadra" << "Goldeen" << "Seaking" << "Staryu" << "Starmie" << "Mr. Mime" << "Scyther" << "Jynx" << "Electabuzz" << "Magmar" << "Pinsir" << "Tauros" << "Magikarp" << "Gyarados" << "Lapras" << "Ditto" << "Eevee" << "Vaporeon" << "Jolteon" << "Flareon" << "Porygon" << "Omanyte" << "Omastar" << "Kabuto" << "Kabutops" << "Aerodactyl" << "Snorlax" << "Articuno" << "Zapdos" << "Moltres" << "Dratini" << "Dragonair" << "Dragonite" << "Mewtwo" << "Mew";
 
@@ -52,6 +54,9 @@ PeerList::PeerList(quint16 port, bool nf) {
   results = new QMap<QByteArray, bool>();
 
   nofwd = nf;
+
+  privKey = QCA::KeyGenerator().createRSA(1024);
+  pubKey = privKey.toPublicKey();
 }
 
 Origin *PeerList::getOrigin(QString name, Peer *sender) {
@@ -251,7 +256,7 @@ void PeerList::processNewKeys(QVariantMap keys, Peer * peer) {
         if ( !msgableOrigins.contains(it.key()) ) { // new msgable origin
             deltaKeys[it.key()] = it.value();
             msgableOrigins[it.key()] = it.value().toByteArray();
-            emit messagable(it.key());
+            emit messageable(it.key());
         }
         if ( !deltaKeys.empty() ) { // broadcast to everone else if new keys
             QMap<QString, int>::iterator jt;
@@ -305,7 +310,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
     replyMessage.insert("SearchReply", QVariant(query));
     replyMessage.insert("MatchNames", QVariant(filenames));
     replyMessage.insert("MatchIDs", QVariant(ids));
-    insertMessage(reply, replyMessage);
+    insertMessage(reply, replyMessage, true);
     forwardMessage(reply, from, HOPLIMIT + 1);
 
     // decide whether to propagate
@@ -319,7 +324,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
 
 void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *dest, quint32 hopLimit) {
   if (dest->getName() == myName()) {
-    QVariantMap message = extractMessage(datagram);
+    QVariantMap message = extractMessage(datagram, true);
     QVariantList filenames = message.value("MatchNames").toList();
     QVariantList ids = message.value("MatchIDs").toList();
     int len = filenames.size();
@@ -380,7 +385,7 @@ void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, qu
   fromName = from->getName();
   toName = to->getName();
   if (fromName == myName() || toName == myName()) {
-    chatText = extractMessage(datagram).value("ChatText").toString();
+    chatText = extractMessage(datagram, true).value("ChatText").toString();
   }
 
   if (toName == myName()) {
@@ -471,7 +476,7 @@ void PeerList::handleRumor(QVariantMap &datagram, Peer *sender, Origin *from) {
 
 void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockRequest(extractMessage(datagram), myOrigin);
+    QVariantMap message = from->blockRequest(extractMessage(datagram, true), myOrigin);
     if (message.empty())
       return;
     QVariantMap reply;
@@ -479,7 +484,7 @@ void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *t
     reply.insert("Origin", myName());
     reply.insert("HopLimit", QVariant(HOPLIMIT));
     reply.insert("Type", QVariant("BlockReply"));
-    insertMessage(reply, message);
+    insertMessage(reply, message, true);
     forwardMessage(reply, from, HOPLIMIT + 1);
   } else if (from->getName() == myName()) {
     forwardMessage(datagram, to, hopLimit + 1);
@@ -490,7 +495,7 @@ void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *t
 
 void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockReply(extractMessage(datagram));
+    QVariantMap message = from->blockReply(extractMessage(datagram, true));
     if (message.empty())
       return;
     QVariantMap request;
@@ -498,7 +503,7 @@ void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to,
     request.insert("Origin", myName());
     request.insert("HopLimit", QVariant(HOPLIMIT));
     request.insert("Type", QVariant("BlockRequest"));
-    insertMessage(request, message);
+    insertMessage(request, message, true);
     forwardMessage(request, from, HOPLIMIT + 1);
   } else if (from->getName() == myName()) {
     forwardMessage(datagram, to, hopLimit + 1);
@@ -578,7 +583,9 @@ void PeerList::shareFile(QString filename) {
   myOrigin->shareFile(filename);
 }
 
-QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
+QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool decrypt) {
+  if (decrypt)
+    datagram = decryptMap(datagram, pubKey, privKey);
   QByteArray messageData = datagram.value("Message").toByteArray();
   QDataStream stream(&messageData, QIODevice::ReadOnly);
   QVariantMap message;
@@ -586,33 +593,11 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
   return message;
 }
 
-/*
-QMap<QString, QCA::PublicKey> PeerList::extractTrustMessage(QVariantMap &datagram) {
-  QByteArray messageData = datagram.value("Message").toByteArray();
-  QDataStream stream(&messageData, QIODevice::ReadOnly);
-  QMap<QString, QCA::PublicKey> message;
-  stream >> message;
-  return message;
-}
-
-*/
-
-void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
+void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message, bool encrypt) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
+  if (encrypt)
+    buffer = encryptMap(datagram, pubKey, privKey);
   datagram.insert("Message", QVariant(buffer));
 }
-
-/* 
-
-void PeerList::insertMessage(QVariantMap &datagram, 
-QMap<QString, QCA::PublicKey> message) 
-{
-  QByteArray buffer;
-  QDataStream stream(&buffer, QIODevice::WriteOnly);
-  stream << message;
-  datagram.insert("Message", QVariant(buffer));
-}
-
-*/

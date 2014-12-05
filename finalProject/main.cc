@@ -30,7 +30,7 @@ int testEncryption() {
   mapStream >> deserializedEncryptedMap;
   qDebug() << "Encrypted Map:\n" << deserializedEncryptedMap;
 
-  QVariantMap decryptedMap = decryptMap(encryptedMap, pubKeyB, privKeyA);
+  QVariantMap decryptedMap = decryptMap(deserializedEncryptedMap, pubKeyB, privKeyA);
 
   qDebug() << "\n\nDecrypted Map:\n" << decryptedMap;
 
