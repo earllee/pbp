@@ -51,7 +51,6 @@ int main(int argc, char **argv) {
     if(s == "-test")
       testEncryption();
   }
-  testEncryption();
 
   // Create an initial chat dialog window
   ChatDialog dialog(nofwd);
