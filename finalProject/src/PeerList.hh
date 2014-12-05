@@ -93,8 +93,8 @@ public:
   // Send trust request to given peerstring
   void requestTrust(QString);
 
-  void insertMessage(QVariantMap&, QVariantMap, bool encrypt = false); /* Insert second arg into first */
-  QVariantMap extractMessage(QVariantMap&, bool decrypt = false);
+  void insertMessage(QVariantMap&, QVariantMap); /* Insert second arg into first */
+  QVariantMap extractMessage(QVariantMap&);
 
   // To be called after trust approved
   void processPendingKeys(QString);

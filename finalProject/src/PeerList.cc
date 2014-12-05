@@ -58,7 +58,7 @@ PeerList::PeerList(quint16 port, bool nf) {
   privKey = QCA::KeyGenerator().createRSA(1024);
   pubKey = privKey.toPublicKey();
   
-  trustedPeers[myOrigin->getName()] = pubKey.toDER();
+  msgableOrigins[myOrigin->getName()] = pubKey.toDER();
 }
 
 Origin *PeerList::getOrigin(QString name, Peer *sender) {
@@ -312,7 +312,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
     replyMessage.insert("SearchReply", QVariant(query));
     replyMessage.insert("MatchNames", QVariant(filenames));
     replyMessage.insert("MatchIDs", QVariant(ids));
-    insertMessage(reply, replyMessage, true);
+    insertMessage(reply, replyMessage);
     forwardMessage(reply, from, HOPLIMIT + 1);
 
     // decide whether to propagate
@@ -326,7 +326,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
 
 void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *dest, quint32 hopLimit) {
   if (dest->getName() == myName()) {
-    QVariantMap message = extractMessage(datagram, true);
+    QVariantMap message = extractMessage(datagram);
     QVariantList filenames = message.value("MatchNames").toList();
     QVariantList ids = message.value("MatchIDs").toList();
     int len = filenames.size();
@@ -387,7 +387,7 @@ void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, qu
   fromName = from->getName();
   toName = to->getName();
   if (fromName == myName() || toName == myName()) {
-    chatText = extractMessage(datagram, true).value("ChatText").toString();
+    chatText = extractMessage(datagram).value("ChatText").toString();
   }
 
   if (toName == myName()) {
@@ -478,7 +478,7 @@ void PeerList::handleRumor(QVariantMap &datagram, Peer *sender, Origin *from) {
 
 void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockRequest(extractMessage(datagram, true), myOrigin);
+    QVariantMap message = from->blockRequest(extractMessage(datagram), myOrigin);
     if (message.empty())
       return;
     QVariantMap reply;
@@ -486,7 +486,7 @@ void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *t
     reply.insert("Origin", myName());
     reply.insert("HopLimit", QVariant(HOPLIMIT));
     reply.insert("Type", QVariant("BlockReply"));
-    insertMessage(reply, message, true);
+    insertMessage(reply, message);
     forwardMessage(reply, from, HOPLIMIT + 1);
   } else if (from->getName() == myName()) {
     forwardMessage(datagram, to, hopLimit + 1);
@@ -497,7 +497,7 @@ void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *t
 
 void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockReply(extractMessage(datagram, true));
+    QVariantMap message = from->blockReply(extractMessage(datagram));
     if (message.empty())
       return;
     QVariantMap request;
@@ -505,7 +505,7 @@ void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to,
     request.insert("Origin", myName());
     request.insert("HopLimit", QVariant(HOPLIMIT));
     request.insert("Type", QVariant("BlockRequest"));
-    insertMessage(request, message, true);
+    insertMessage(request, message);
     forwardMessage(request, from, HOPLIMIT + 1);
   } else if (from->getName() == myName()) {
     forwardMessage(datagram, to, hopLimit + 1);
@@ -585,9 +585,16 @@ void PeerList::shareFile(QString filename) {
   myOrigin->shareFile(filename);
 }
 
-QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool decrypt) {
-  if (decrypt)
-    datagram = decryptMap(datagram, pubKey, privKey);
+QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
+  QString msgType = datagram["type"].toString();
+  if (msgType == "Private" ||
+      msgType == "BlockRequest" ||
+      msgType == "BlockReply" || 
+      msgType == "SearchReply")
+  {
+    datagram = decryptMap(datagram, getKeyByOrigin(datagram["Origin"].toString()), 
+        privKey);
+  }
   QByteArray messageData = datagram.value("Message").toByteArray();
   QDataStream stream(&messageData, QIODevice::ReadOnly);
   QVariantMap message;
@@ -595,11 +602,18 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool decrypt) {
   return message;
 }
 
-void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message, bool encrypt) {
+void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
-  if (encrypt)
-    buffer = encryptMap(datagram, pubKey, privKey);
+  QString msgType = datagram["Type"].toString();
+  if (msgType == "Private" ||
+      msgType == "BlockRequest" ||
+      msgType == "BlockReply" || 
+      msgType == "SearchReply")
+  { 
+    buffer = encryptMap(datagram, getKeyByOrigin(datagram["Origin"].toString()), 
+        privKey);
+  }
   datagram.insert("Message", QVariant(buffer));
 }

@@ -109,7 +109,7 @@ void NetSocket::localMessage(QString text, QString dest) {
     datagram.insert("HopLimit", QVariant(HOPLIMIT));
     datagram.insert("Type", QVariant("Private"));
   }
-  peers->insertMessage(datagram, message, true);
+  peers->insertMessage(datagram, message);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -121,7 +121,7 @@ void NetSocket::fileMessage(QByteArray hash, QString filename, QString dest) {
   datagram.insert("HopLimit", QVariant(HOPLIMIT));
   datagram.insert("Type", QVariant("BlockRequest"));
   message.insert("BlockRequest", QVariant(hash));
-  peers->insertMessage(datagram, message, true);
+  peers->insertMessage(datagram, message);
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
