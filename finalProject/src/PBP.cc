@@ -17,7 +17,7 @@
 //      (QByteArray) Signature: signature of hashed byte array of message
 //      (QByteArray) Key: encrypted sym key
 //      (QByteArray) iV: initialization vector for cipher
-QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
+void encryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Initialize encryption tools
     QCA::SymmetricKey symKey(SYMMETRIC_KEY_SIZE);
@@ -39,14 +39,7 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
         data.insert("Success", false);
     }
 
-    // Create signature
-    QCA::SecureArray dataDigest = QCA::Hash("sha1").hash(buffer);
-    if (!privKey.canSign()) {
-        qDebug() << "Can't sign message.";
-        data.insert("Success", false);
-    }
-
-    QByteArray signature = privKey.signMessage(dataDigest, QCA::EMSA3_MD5);
+    QByteArray signature = privKey.signMessage(buffer, QCA::EMSA3_MD5);
 
     // Encrypt symmetric key
     if (!pubKey.canEncrypt()) {
@@ -63,24 +56,17 @@ QByteArray encryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey p
     data.insert("iV", iV.toByteArray());
     if (!data.contains("Success"))
         data.insert("Success", true);
-
-    // Convert to byte array
-    QByteArray encryptedMap;
-    QDataStream encryptedMapStream(&encryptedMap, QIODevice::WriteOnly);
-    encryptedMapStream << data;
-
-    return encryptedMap;
 }
 
-QVariantMap decryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
+void decryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Do some initial checks
     if (!data["Success"].toBool())
-        return data;
+        return;
     if (!privKey.canDecrypt()) {
         qDebug() << "decryptData: cannot decrypt with private key!\n";
         data.insert("Success", false);
-        return data;
+        return;
     }
 
     // Decrypt symmetric key
@@ -88,7 +74,7 @@ QVariantMap decryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey 
     if (0 == privKey.decrypt(data["Key"].toByteArray(), &decryptedSymKey, QCA::EME_PKCS1_OAEP)) {
         qDebug() << "decryptData: decryption of symmetric key failed!\n";
         data.insert("Success", false);
-        return data;
+        return;
     }
     QCA::SymmetricKey symKey(decryptedSymKey);
 
@@ -104,25 +90,18 @@ QVariantMap decryptMap(QVariantMap data, QCA::PublicKey pubKey, QCA::PrivateKey 
     if (!cipher.ok()) {
         qDebug() << "decryptData: cipher.update() failed\n";
         data.insert("Success", false);
-        return data;
+        return;
     }
-    QCA::SecureArray decryptedDataDigest = QCA::Hash("sha1").hash(decryptedData);
-
-    QDataStream decryptedDataStream(&decryptedData, QIODevice::ReadOnly);
-    QVariantMap decryptedMessage;
-    decryptedDataStream >> decryptedMessage;
 
     // Check signature
-    if (!pubKey.verifyMessage(decryptedDataDigest, data["Signature"].toByteArray(), QCA::EMSA3_MD5)) {
+    if (!pubKey.verifyMessage(decryptedData, data["Signature"].toByteArray(), QCA::EMSA3_MD5)) {
         qDebug() << "decryptData: verifyMessage() failed\n";
         data.insert("Success", false);
-        return data;
+        return;
     }
 
-    data.insert("Message", decryptedMessage);
+    data.insert("Message", decryptedData);
     data.remove("Key");
     data.remove("Signature");
     data.remove("iV");
-
-    return data;
 };

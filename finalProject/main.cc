@@ -10,29 +10,30 @@
 #include <QApplication>
 #include <PBP.hh>
 
-int testEncryption() {
-
-  QString msg = "Test message 1 2 3 ...";
-  QVariantMap map;
-  map.insert("Message", msg);
+void testEncryption() {
+  QString txt = "Test message 1 2 3 ...";
+  QVariantMap map, msg;
+  msg.insert("ChatText", txt);
+  QByteArray buffer;
+  QDataStream stream(&buffer, QIODevice::WriteOnly);
+  stream << msg;
+  map.insert("Message", buffer);
   
   QCA::PrivateKey privKeyA = QCA::KeyGenerator().createRSA(1024);
   QCA::PrivateKey privKeyB = QCA::KeyGenerator().createRSA(1024);
   QCA::PublicKey pubKeyA = privKeyA.toPublicKey();
   QCA::PublicKey pubKeyB = privKeyB.toPublicKey();
 
-  qDebug() << "Original Map:\n" << map;
+  encryptMap(map, pubKeyA, privKeyB);
 
-  QByteArray encryptedMap = encryptMap(map, pubKeyA, privKeyB);
+  decryptMap(map, pubKeyB, privKeyA);
 
-  QDataStream mapStream(&encryptedMap, QIODevice::ReadOnly);
-  QVariantMap deserializedEncryptedMap;
-  mapStream >> deserializedEncryptedMap;
-  qDebug() << "Encrypted Map:\n" << deserializedEncryptedMap;
+  QByteArray messageData = map.value("Message").toByteArray();
+  QDataStream stream2(&messageData, QIODevice::ReadOnly);
+  QVariantMap message;
+  stream2 >> message;
 
-  QVariantMap decryptedMap = decryptMap(deserializedEncryptedMap, pubKeyB, privKeyA);
-
-  qDebug() << "\n\nDecrypted Map:\n" << decryptedMap;
+  qDebug() << "\n\nDecrypted Map:\n" << message;
 
   exit(0);
 }

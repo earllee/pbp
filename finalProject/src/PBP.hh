@@ -5,7 +5,7 @@
 #include <QByteArray>
 #include <QDebug>
 
-QByteArray encryptMap(QVariantMap, QCA::PublicKey, QCA::PrivateKey);
-QVariantMap decryptMap(QVariantMap, QCA::PublicKey, QCA::PrivateKey);
+void encryptMap(QVariantMap&, QCA::PublicKey, QCA::PrivateKey);
+void decryptMap(QVariantMap&, QCA::PublicKey, QCA::PrivateKey);
 
 #endif
