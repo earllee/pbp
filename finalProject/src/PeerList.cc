@@ -58,7 +58,7 @@ PeerList::PeerList(quint16 port, bool nf) {
   privKey = QCA::KeyGenerator().createRSA(1024);
   pubKey = privKey.toPublicKey();
   
-  msgableOrigins[myOrigin->getName()] = pubKey.toDER();
+  msgableOrigins[myName()] = pubKey.toDER();
 }
 
 Origin *PeerList::getOrigin(QString name, Peer *sender) {
@@ -223,11 +223,10 @@ QCA::PublicKey PeerList::getKeyByOrigin(QString orig) {
 
 // Sends trust request to given peer string
 void PeerList::requestTrust(QString peer) {
-    Peer * recvingPeer = peers->value(peer);
-    QVariantMap datagram = constructTrustMsg();
-    emit sendMessage(recvingPeer->getHost(), recvingPeer->getPort(), datagram); 
-
-    trustedPeers[peer] = 1;
+  trustedPeers[peer] = 1;
+  Peer * recvingPeer = peers->value(peer);
+  QVariantMap datagram = constructTrustMsg();
+  emit sendMessage(recvingPeer->getHost(), recvingPeer->getPort(), datagram); 
 }
 
 // Called upon recving trust msg
@@ -236,8 +235,8 @@ void PeerList::handleTrust(QVariantMap &datagram, Peer *sender) {
     .arg(sender->getHost().toString()).arg(sender->getPort());
   
   if (trustedPeers[peerStr] == 1) { // Pending
-    emit acceptedTrust(peerStr);
     trustedPeers[peerStr] = 2;
+    emit acceptedTrust(peerStr);
     processNewKeys(extractMessage(datagram), sender);
   } else if (trustedPeers[peerStr] == 2) { // trusted
     processNewKeys(extractMessage(datagram), sender);
@@ -251,16 +250,17 @@ void PeerList::handleTrust(QVariantMap &datagram, Peer *sender) {
 void PeerList::processNewKeys(QVariantMap keys, Peer * peer) {
     for (QVariantMap::iterator it = keys.begin(); it != keys.end(); ++it) {
         if ( !origins->contains(it.key()) ) { // New Origin in general
-            addOrigin(it.key(), peer);
+	  if (it.key() != myName())
+	    addOrigin(it.key(), peer);
         }
 
         QVariantMap deltaKeys;
         if ( !msgableOrigins.contains(it.key()) ) { // new msgable origin
-            deltaKeys[it.key()] = it.value();
-            msgableOrigins[it.key()] = it.value().toByteArray();
-            emit messageable(it.key());
+	  deltaKeys[it.key()] = it.value();
+	  msgableOrigins[it.key()] = it.value().toByteArray();
+	  emit messageable(it.key());
         }
-        if ( !deltaKeys.empty() ) { // broadcast to everone else if new keys
+        if ( !deltaKeys.empty() ) { // broadcast to everyone else if new keys
             QMap<QString, int>::iterator jt;
             QVariantMap datagram = constructTrustMsg(deltaKeys);
 
@@ -280,8 +280,10 @@ void PeerList::processNewKeys(QVariantMap keys, Peer * peer) {
 void PeerList::processPendingKeys(QString peerStr) {
     trustedPeers[peerStr] = 2;
     Peer * peer = peers->value(peerStr);
-    QVariantMap newKeys = pendingTrustMsgs[peerStr];
+    QVariantMap datagram = constructTrustMsg();
+    emit sendMessage(peer->getHost(), peer->getPort(), datagram); 
 
+    QVariantMap newKeys = pendingTrustMsgs[peerStr];
     processNewKeys(newKeys, peer);
 }
 
@@ -357,7 +359,6 @@ void PeerList::expandSearch() {
 }
 
 void PeerList::propagateSearch(QVariantMap &datagram, quint32 budget) {
-  qDebug() << budget;
   if (budget >= (quint32) peers->size()) {
     // every peer gets the message
     QList<Peer*> recipients = peers->values();

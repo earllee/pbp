@@ -165,9 +165,9 @@ void NetSocket::sendMessage(QHostAddress host, quint16 port, QVariantMap datagra
   stream << datagram;
 
   writeDatagram(buffer, host, port);
-  QVariantMap toPrint = datagram;
-  toPrint.insert("Message", QVariant(peers->extractMessage(toPrint)));
-  qDebug() << toPrint;
+  // QVariantMap toPrint = datagram;
+  // toPrint.insert("Message", QVariant(peers->extractMessage(toPrint)));
+  // qDebug() << toPrint;
   // qDebug() << QString("[SENT %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
 }
 
@@ -182,9 +182,9 @@ void NetSocket::receiveMessage() {
     QVariantMap datagram;
     stream >> datagram;
 
-    QVariantMap toPrint = datagram;
-    toPrint.insert("Message", QVariant(peers->extractMessage(toPrint)));
-    qDebug() << toPrint;
+    // QVariantMap toPrint = datagram;
+    // toPrint.insert("Message", QVariant(peers->extractMessage(toPrint)));
+    // qDebug() << toPrint;
     // qDebug() << QString("[RECEIVED %1:%2] %3").arg(host.toString()).arg(port).arg(stringify(datagram));
     peers->newMessage(host, port, datagram);
   }
