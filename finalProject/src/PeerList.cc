@@ -11,12 +11,6 @@
 #include <PeerList.hh>
 #include <PBP.hh>
 
-void dumpKeys(QVariantMap &datagram) {
-  foreach(QString key, datagram.keys()) {
-    qDebug() << key;
-  }
-}
-
 QVector<QString> POKEMON = QVector<QString>() << "Bulbasaur" << "Ivysaur" << "Venusaur" << "Charmander" << "Charmeleon" << "Charizard" << "Squirtle" << "Wartortle" << "Blastoise" << "Caterpie" << "Metapod" << "Butterfree" << "Weedle" << "Kakuna" << "Beedrill" << "Pidgey" << "Pidgeotto" << "Pidgeot" << "Rattata" << "Raticate" << "Spearow" << "Fearow" << "Ekans" << "Arbok" << "Pikachu" << "Raichu" << "Sandshrew" << "Sandslash" << "Nidoran♀" << "Nidorina" << "Nidoqueen" << "Nidoran♂" << "Nidorino" << "Nidoking" << "Clefairy" << "Clefable" << "Vulpix" << "Ninetales" << "Jigglypuff" << "Wigglytuff" << "Zubat" << "Golbat" << "Oddish" << "Gloom" << "Vileplume" << "Paras" << "Parasect" << "Venonat" << "Venomoth" << "Diglett" << "Dugtrio" << "Meowth" << "Persian" << "Psyduck" << "Golduck" << "Mankey" << "Primeape" << "Growlithe" << "Arcanine" << "Poliwag" << "Poliwhirl" << "Poliwrath" << "Abra" << "Kadabra" << "Alakazam" << "Machop" << "Machoke" << "Machamp" << "Bellsprout" << "Weepinbell" << "Victreebel" << "Tentacool" << "Tentacruel" << "Geodude" << "Graveler" << "Golem" << "Ponyta" << "Rapidash" << "Slowpoke" << "Slowbro" << "Magnemite" << "Magneton" << "Farfetch'd" << "Doduo" << "Dodrio" << "Seel" << "Dewgong" << "Grimer" << "Muk" << "Shellder" << "Cloyster" << "Gastly" << "Haunter" << "Gengar" << "Onix" << "Drowzee" << "Hypno" << "Krabby" << "Kingler" << "Voltorb" << "Electrode" << "Exeggcute" << "Exeggutor" << "Cubone" << "Marowak" << "Hitmonlee" << "Hitmonchan" << "Lickitung" << "Koffing" << "Weezing" << "Rhyhorn" << "Rhydon" << "Chansey" << "Tangela" << "Kangaskhan" << "Horsea" << "Seadra" << "Goldeen" << "Seaking" << "Staryu" << "Starmie" << "Mr. Mime" << "Scyther" << "Jynx" << "Electabuzz" << "Magmar" << "Pinsir" << "Tauros" << "Magikarp" << "Gyarados" << "Lapras" << "Ditto" << "Eevee" << "Vaporeon" << "Jolteon" << "Flareon" << "Porygon" << "Omanyte" << "Omastar" << "Kabuto" << "Kabutops" << "Aerodactyl" << "Snorlax" << "Articuno" << "Zapdos" << "Moltres" << "Dratini" << "Dragonair" << "Dragonite" << "Mewtwo" << "Mew";
 
 QVector<QString> PERSONALITIES = QVector<QString>() << "Hardy" << "Lonely" << "Brave" << "Adamant" << "Naughty" << "Bold" << "Docile" << "Relaxed" << "Impish" << "Lax" << "Timid" << "Hasty" << "Serious" << "Jolly" << "Naive" << "Modest" << "Mild" << "Quiet" << "Bashful" << "Rash" << "Calm" << "Gentle" << "Sassy" << "Careful" << "Quirky";
@@ -431,10 +425,11 @@ void PeerList::handleStatus(QVariantMap &datagram, Peer *sender) {
     else
       needed = 1;
     if(needed < o->next()) {
-      QVariantMap reply;
+      QVariantMap reply, message;
       reply.insert("Type", QVariant("Rumor"));
       reply.insert("Origin", o->getName());
-      insertMessage(reply, o->message(needed));
+      message = o->message(needed);
+      insertMessage(reply, message);
       emit sendMessage(sender->getHost(), sender->getPort(), reply);
       return;
     }
@@ -599,40 +594,30 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
       msgType == "BlockReply" || 
       msgType == "SearchReply")
   {
-    decryptMap(datagram, getKeyByOrigin(datagram["Origin"].toString()), 
+    qDebug() << "decrypting";
+    decryptMap(datagram, pubKey, // getKeyByOrigin(datagram["Origin"].toString()), 
 	       privKey);
   }
   QByteArray messageData = datagram.value("Message").toByteArray();
   QDataStream stream(&messageData, QIODevice::ReadOnly);
   QVariantMap message;
   stream >> message;
-  if (msgType == "Private") {
-    qDebug() << "ex";
-    dumpKeys(datagram);
-    qDebug() << "tr";
-    dumpKeys(message);
-    qDebug() << "act";
-  }
   return message;
 }
 
-void PeerList::insertMessage(QVariantMap &datagram, QVariantMap message) {
+void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
-  datagram.insert("Message", QVariant(buffer));
+  datagram.insert("Message", buffer);
 
   QString msgType = datagram["Type"].toString();
   if (msgType == "Private" ||
       msgType == "BlockRequest" ||
       msgType == "BlockReply" || 
       msgType == "SearchReply") {
-    encryptMap(datagram, getKeyByOrigin(datagram["Dest"].toString()), 
-        privKey);
-  }
-  if (msgType == "Private") {
-    dumpKeys(datagram);
-    qDebug() << "PRIVATE";
-    dumpKeys(message);
+    qDebug() << "encrypting";
+    encryptMap(datagram, pubKey, // getKeyByOrigin(datagram["Dest"].toString()), 
+	       privKey);
   }
 }

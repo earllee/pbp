@@ -11,6 +11,8 @@
 #include <QDataStream>
 #include <QHostInfo>
 
+#include <PBP.hh>
+
 #define HOPLIMIT 10U
 #define INITBUDGET 2U
 

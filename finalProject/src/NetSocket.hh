@@ -41,7 +41,6 @@ signals:
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
 
-  // 
   void approveTrust(QString); // ask to approve in chat; signal to dialog
                               // Just received a req from else; host:port
  

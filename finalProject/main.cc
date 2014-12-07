@@ -24,16 +24,16 @@ void testEncryption() {
   QCA::PublicKey pubKeyA = privKeyA.toPublicKey();
   QCA::PublicKey pubKeyB = privKeyB.toPublicKey();
 
-  encryptMap(map, pubKeyA, privKeyB);
+  encryptMap(map, pubKeyB, privKeyA);
 
-  decryptMap(map, pubKeyB, privKeyA);
+  decryptMap(map, pubKeyA, privKeyB);
 
   QByteArray messageData = map.value("Message").toByteArray();
   QDataStream stream2(&messageData, QIODevice::ReadOnly);
   QVariantMap message;
   stream2 >> message;
 
-  qDebug() << "\n\nDecrypted Map:\n" << message;
+  qDebug() << "Decrypted Map:" << message;
 
   exit(0);
 }
@@ -46,11 +46,14 @@ int main(int argc, char **argv) {
   QApplication app(argc,argv);
 
   bool nofwd = false;
+  bool test = false;
   foreach(QString s, app.arguments().mid(1)) {
     if(s == "-noforward")
       nofwd = true;
-    if(s == "-test")
-      testEncryption();
+    if(s == "-test") {
+      test = true;
+      // testEncryption();
+    }
   }
 
   // Create an initial chat dialog window
@@ -93,6 +96,12 @@ int main(int argc, char **argv) {
 
   if (!sock.bind(nofwd))
     exit(1);
+
+  if (test) {
+    testEncryption();
+    exit(0);
+  }
+
 
   foreach(QString s, app.arguments().mid(1)) {
     if(s != "-noforward")
