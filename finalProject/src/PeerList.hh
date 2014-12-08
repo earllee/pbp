@@ -94,7 +94,7 @@ public:
   void requestTrust(QString);
 
   void insertMessage(QVariantMap&, QVariantMap&); /* Insert second arg into first */
-  QVariantMap extractMessage(QVariantMap&);
+  QVariantMap extractMessage(QVariantMap&, bool *ok = NULL);
 
   // To be called after trust approved
   void processPendingKeys(QString);

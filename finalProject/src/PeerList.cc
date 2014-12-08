@@ -328,7 +328,10 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
 
 void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *dest, quint32 hopLimit) {
   if (dest->getName() == myName()) {
-    QVariantMap message = extractMessage(datagram);
+    bool ok;
+    QVariantMap message = extractMessage(datagram, &ok);
+    if (!ok)
+      return;
     QVariantList filenames = message.value("MatchNames").toList();
     QVariantList ids = message.value("MatchIDs").toList();
     int len = filenames.size();
@@ -388,9 +391,13 @@ void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, qu
   QString toName = to->getName();
 
   if (toName == myName()) {
+    bool ok;
+    QVariantMap message = extractMessage(datagram, &ok);
+    if (!ok)
+      return;
     // post message sent to me
     emit postMessage(fromName,
-		     extractMessage(datagram).value("ChatText").toString(),
+		     message.value("ChatText").toString(),
 		     fromName);
   } else if (fromName == myName()) {
     // forward
@@ -477,7 +484,11 @@ void PeerList::handleRumor(QVariantMap &datagram, Peer *sender, Origin *from) {
 
 void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockRequest(extractMessage(datagram), myOrigin);
+    bool ok;
+    QVariantMap info = extractMessage(datagram, &ok);
+    if (!ok)
+      return;
+    QVariantMap message = from->blockRequest(info, myOrigin);
     if (message.empty())
       return;
     QVariantMap reply;
@@ -496,7 +507,11 @@ void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *t
 
 void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
   if (to->getName() == myName()) {
-    QVariantMap message = from->blockReply(extractMessage(datagram));
+    bool ok;
+    QVariantMap info = extractMessage(datagram, &ok);
+    if (!ok)
+      return;
+    QVariantMap message = from->blockReply(info);
     if (message.empty())
       return;
     QVariantMap request;
@@ -584,16 +599,18 @@ void PeerList::shareFile(QString filename) {
   myOrigin->shareFile(filename);
 }
 
-QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
+// changes the map if it's a private message
+QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool *ok) {
   QString msgType = datagram["Type"].toString();
   if (msgType == "Private" ||
       msgType == "BlockRequest" ||
       msgType == "BlockReply" || 
-      msgType == "SearchReply")
-  {
-    qDebug() << "decrypting";
-    decryptMap(datagram, getKeyByOrigin(datagram["Origin"].toString()), 
-	       privKey);
+      msgType == "SearchReply") {
+    *ok = decryptMap(datagram,
+		     getKeyByOrigin(datagram["Origin"].toString()), 
+		     privKey);
+    if (!(*ok))
+      return QVariantMap();
   }
   QByteArray messageData = datagram.value("Message").toByteArray();
   QDataStream stream(&messageData, QIODevice::ReadOnly);
@@ -602,6 +619,7 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
   return message;
 }
 
+// changes the map if it's a private message
 void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
@@ -613,8 +631,11 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
       msgType == "BlockRequest" ||
       msgType == "BlockReply" || 
       msgType == "SearchReply") {
-    qDebug() << "encrypting";
-    encryptMap(datagram, getKeyByOrigin(datagram["Dest"].toString()), 
-	       privKey);
+    if (!encryptMap(datagram,
+		    getKeyByOrigin(datagram["Dest"].toString()), 
+		    privKey)) {
+      qDebug() << "encryption failed, exiting for security";
+      exit(1);
+    }
   }
 }

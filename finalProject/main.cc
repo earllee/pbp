@@ -24,9 +24,15 @@ void testEncryption() {
   QCA::PublicKey pubKeyA = privKeyA.toPublicKey();
   QCA::PublicKey pubKeyB = privKeyB.toPublicKey();
 
-  encryptMap(map, pubKeyB, privKeyA);
+  if (!encryptMap(map, pubKeyB, privKeyA)) {
+    qDebug() << "encrypt failed";
+    exit(1);
+  }
 
-  decryptMap(map, pubKeyA, privKeyB);
+  if (!decryptMap(map, pubKeyA, privKeyB)) {
+    qDebug() << "decrypt failed";
+    exit(1);
+  }
 
   QByteArray messageData = map.value("Message").toByteArray();
   QDataStream stream2(&messageData, QIODevice::ReadOnly);

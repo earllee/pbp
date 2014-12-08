@@ -17,13 +17,15 @@
 //      (QByteArray) Signature: signature of hashed byte array of message
 //      (QByteArray) Key: encrypted sym key
 //      (QByteArray) iV: initialization vector for cipher
-void encryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
+bool encryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Initialize encryption tools
     QCA::SymmetricKey symKey(SYMMETRIC_KEY_SIZE);
     QCA::InitializationVector iV(16); 
-    if(!QCA::isSupported("aes128-cbc-pkcs7"))
-        printf("AES128-CBC not supported!\n");
+    if(!QCA::isSupported("aes128-cbc-pkcs7")) {
+      qDebug() << "AES128-CBC not supported!";
+      return false;
+    }
     
     QCA::Cipher cipher(QString("aes128"), QCA::Cipher::CBC,
             QCA::Cipher::DefaultPadding,
@@ -35,12 +37,13 @@ void encryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKe
     // Encrypt data
     QCA::SecureArray encryptedMessage = cipher.process(buffer);
     if (!cipher.ok()) {
-        qDebug() << "encryptMap: cipher.process(buffer) failed\n";
-        data.insert("Success", false);
+        qDebug() << "encryptMap: cipher.process(buffer) failed";
+	return false;
     }
 
     if(!privKey.canSign()) {
       qDebug() << "Error: this kind of key cannot sign";
+      return false;
     }
     privKey.startSign( QCA::EMSA3_MD5 );
     privKey.update( buffer ); // just reuse the same message
@@ -48,8 +51,8 @@ void encryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKe
 
     // Encrypt symmetric key
     if (!pubKey.canEncrypt()) {
-        qDebug() << "Can't encrypt message.";
-        data.insert("Success", false);
+        qDebug() << "Public key can't encrypt message.";
+	return false;
     }
 
     QCA::SecureArray encryptedSymKey = pubKey.encrypt(symKey, QCA::EME_PKCS1_OAEP);
@@ -59,27 +62,22 @@ void encryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKe
     data.insert("Key", encryptedSymKey.toByteArray());
     data.insert("Signature", signature);
     data.insert("iV", iV.toByteArray());
-    if (!data.contains("Success"))
-        data.insert("Success", true);
+    return true;
 }
 
-void decryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
+bool decryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKey)
 {
     // Do some initial checks
-    if (!data["Success"].toBool())
-        return;
     if (!privKey.canDecrypt()) {
-        qDebug() << "decryptData: cannot decrypt with private key!\n";
-        data.insert("Success", false);
-        return;
+        qDebug() << "decryptData: cannot decrypt with private key!";
+        return false;
     }
 
     // Decrypt symmetric key
     QCA::SecureArray decryptedSymKey;
-    if (0 == privKey.decrypt(data["Key"].toByteArray(), &decryptedSymKey, QCA::EME_PKCS1_OAEP)) {
-        qDebug() << "decryptData: decryption of symmetric key failed!\n";
-        data.insert("Success", false);
-        return;
+    if (privKey.decrypt(data["Key"].toByteArray(), &decryptedSymKey, QCA::EME_PKCS1_OAEP) == 0) {
+        qDebug() << "decryptData: decryption of symmetric key failed!";
+        return false;
     }
     QCA::SymmetricKey symKey(decryptedSymKey);
 
@@ -93,29 +91,24 @@ void decryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKe
 
     QByteArray decryptedData = cipher.process(data["Message"].toByteArray()).toByteArray();
     if (!cipher.ok()) {
-        qDebug() << "decryptData: cipher.update() failed\n";
-        data.insert("Success", false);
-        return;
+        qDebug() << "decryptData: cipher.update() failed";
+	return false;
     }
 
-    if(pubKey.canVerify()) {
-      pubKey.startVerify( QCA::EMSA3_MD5 );
-      pubKey.update( decryptedData );
-      if ( pubKey.validSignature( data["Signature"].toByteArray() ) ) {
-	qDebug() << "Signature is valid";
-      } else {
-	qDebug() << "Bad signature";
-      }
+    if(!pubKey.canVerify()) {
+      qDebug() << "Public key cannot verify";
+      return false;
     }
-    // // Check signature
-    // if (!pubKey.verifyMessage(decryptedData, data["Signature"].toByteArray(), QCA::EMSA3_MD5)) {
-    //     qDebug() << "decryptData: verifyMessage() failed\n";
-    //     data.insert("Success", false);
-    //     return;
-    // }
+    pubKey.startVerify( QCA::EMSA3_MD5 );
+    pubKey.update( decryptedData );
+    if ( pubKey.validSignature( data["Signature"].toByteArray() ) ) {
+      qDebug() << "Bad signature";
+      // return false;
+    }
 
     data.insert("Message", decryptedData);
     data.remove("Key");
     data.remove("Signature");
     data.remove("iV");
+    return true;
 };
