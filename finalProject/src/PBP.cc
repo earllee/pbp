@@ -101,9 +101,9 @@ bool decryptMap(QVariantMap &data, QCA::PublicKey pubKey, QCA::PrivateKey privKe
     }
     pubKey.startVerify( QCA::EMSA3_MD5 );
     pubKey.update( decryptedData );
-    if ( pubKey.validSignature( data["Signature"].toByteArray() ) ) {
+    if ( !pubKey.validSignature( data["Signature"].toByteArray() ) ) {
       qDebug() << "Bad signature";
-      // return false;
+      return false;
     }
 
     data.insert("Message", decryptedData);
