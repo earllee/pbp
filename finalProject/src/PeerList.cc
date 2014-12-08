@@ -384,19 +384,16 @@ void PeerList::propagateSearch(QVariantMap &datagram, quint32 budget) {
 }
 
 void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, quint32 hopLimit) {
-  QString chatText, fromName, toName;
-  fromName = from->getName();
-  toName = to->getName();
-  if (fromName == myName() || toName == myName()) {
-    chatText = extractMessage(datagram).value("ChatText").toString();
-  }
+  QString fromName = from->getName();
+  QString toName = to->getName();
 
   if (toName == myName()) {
     // post message sent to me
-    emit postMessage(fromName, chatText, fromName);
+    emit postMessage(fromName,
+		     extractMessage(datagram).value("ChatText").toString(),
+		     fromName);
   } else if (fromName == myName()) {
-    // post message sent by me and forward
-    emit postMessage(fromName, chatText, toName);
+    // forward
     forwardMessage(datagram, to, hopLimit + 1);
   } else {
     forwardMessage(datagram, to, hopLimit);
@@ -595,7 +592,7 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram) {
       msgType == "SearchReply")
   {
     qDebug() << "decrypting";
-    decryptMap(datagram, pubKey, // getKeyByOrigin(datagram["Origin"].toString()), 
+    decryptMap(datagram, getKeyByOrigin(datagram["Origin"].toString()), 
 	       privKey);
   }
   QByteArray messageData = datagram.value("Message").toByteArray();
@@ -617,7 +614,7 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
       msgType == "BlockReply" || 
       msgType == "SearchReply") {
     qDebug() << "encrypting";
-    encryptMap(datagram, pubKey, // getKeyByOrigin(datagram["Dest"].toString()), 
+    encryptMap(datagram, getKeyByOrigin(datagram["Dest"].toString()), 
 	       privKey);
   }
 }

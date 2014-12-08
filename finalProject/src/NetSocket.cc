@@ -107,6 +107,8 @@ void NetSocket::localMessage(QString text, QString dest) {
     message.insert("SeqNo", QVariant(peers->mySeqNo()));
     datagram.insert("Type", QVariant("Rumor"));
   } else {
+    // private (need to relay to front end before encrypted)
+    emit postMessage(peers->myName(), text, dest);
     datagram.insert("Dest", QVariant(dest));
     datagram.insert("HopLimit", QVariant(HOPLIMIT));
     datagram.insert("Type", QVariant("Private"));

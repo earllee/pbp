@@ -52,7 +52,6 @@ int main(int argc, char **argv) {
       nofwd = true;
     if(s == "-test") {
       test = true;
-      // testEncryption();
     }
   }
 
