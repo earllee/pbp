@@ -36,7 +36,11 @@ private:
   // QMap<QString, QMap<QString, QCA::PublicKey> > pendingTrustMsgs;
   QMap<QString, QVariantMap> pendingTrustMsgs;
   QMap<QString, int> trustedPeers;
- 
+
+  QSet<QString> friendList;
+  QMap<QString, QString> pendingFriendReqs;
+  QMap<QString, QString> mySentFriendReqs;
+
   /* getOrigin fetches from local origins structure
    * QString refers to user generated name of origin 
    * Peer* refers to the peer that the path to the origin passes thru
@@ -62,6 +66,8 @@ private:
   void handleBlockRequest(QVariantMap&, Origin*, Origin*, quint32);
   void handleBlockReply(QVariantMap&, Origin*, Origin*, quint32);
   void handleTrust(QVariantMap&, Peer*);
+  void handleFriendRequest(QVariantMap&, Origin*, Origin*, quint32);
+  void handleFriendReply(QVariantMap&, Origin*, Origin*, quint32);
 
   void forwardMessage(QVariantMap&, Origin*, quint32);
   QVariantMap constructStatus();
@@ -72,6 +78,8 @@ private:
   void processNewKeys(QVariantMap, Peer *);
 
   QCA::PublicKey getKeyByOrigin(QString);
+
+  bool isFriend(QString);
 public:
   PeerList(quint16, bool nf = false);
   Peer *getMe();
@@ -87,7 +95,8 @@ public:
   Peer *add(QString, quint16);
   
   void newMessage(QHostAddress, quint16, QVariantMap&); // recv'd new msg
-  void shareFile(QString);
+  
+  void shareFile(QString, bool);
   void startDownload(QByteArray, QString, QString);
 
   // Send trust request to given peerstring
@@ -98,17 +107,17 @@ public:
 
   // To be called after trust approved
   void processPendingKeys(QString);
+  void addPendingFriendReq(QString, QString);
 public slots:
   void rumor(QVariantMap, bool broadcast = false);
   void sentMessage(QHostAddress, quint16); // Merely sets the wait timer
   void antiEntropy();
   void expandSearch();
 signals:
-  void sendMessage(QHostAddress, quint16, QVariantMap); // self explanatory
-  void postMessage(QString, QString, QString); // Connected to UI I think
-                                               // msgText is second arg
-  void newOrigin(QString); // Signal to NetSocket to UI; QString is orig name
-  void searchReply(QByteArray, QString, QString);
+  void sendMessage(QHostAddress, quint16, QVariantMap);
+  void postMessage(QString, QString, QString);
+  void newOrigin(QString);
+  void searchReply(QByteArray, QString, QString, bool);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
   void newPeer(QString); // Signal to NetSocket to UI; QString is host:port
@@ -116,6 +125,8 @@ signals:
   void messageable(QString);
   void acceptedTrust(QString);
   void approveTrust(QString);
+  void approveFriend(QString);
+  void acceptedFriend(QString);
 };
 
 #endif

@@ -26,23 +26,29 @@ public slots:
   void newOrigin(QString);
   void originClicked(QListWidgetItem*);
   void openFileDialog();
-  void searchReply(QByteArray, QString, QString);
+  void fileClicked(QListWidgetItem*);
+  void searchReply(QByteArray, QString, QString, bool);
   void initiateSearch();
   void startDownload(QListWidgetItem*);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
   void peerClicked(QListWidgetItem*);
-  void approveTrust(QString); // expects host:port
-  void acceptedTrust(QString); // expects host:port
-  void messageable(QString); // expects origin name
+  void approveTrust(QString);
+  void acceptedTrust(QString);
+  void approveFriend(QString);
+  void acceptedFriend(QString);
+  void messageable(QString);
 signals:
   void newMessage(QString, QString);
   void addPeer(QString);
-  void shareFile(QString);
+  void shareFile(QString, bool);
   void downloadFile(QByteArray, QString, QString);
   void search(QString);
-  void requestTrust(QString); // sends host:port
-  void trustApproved(QString); // sends host:port
+  void requestTrust(QString);
+  void trustApproved(QString);
+  void requestFriend(QString);
+  void friendApproved(QString);
+  void filePrivate(QString, bool);
 private:
   ChatTab *broadcast;
   QMap<QString, ChatTab*> *chats;
@@ -63,6 +69,8 @@ private:
   QMap<QByteArray, DownloadBox*> *downloads;
   void setPeerState(QString, QString);
   void setOriginState(QString, QString);
+  void setFileState(QString, QString);
+  void setResultState(QString, QString);
 };
 
 #endif

@@ -38,10 +38,10 @@ public:
   bool addMessage(quint32, QVariantMap, Peer*, bool);
   QVariantMap blockRequest(QVariantMap, Origin*);
   QVariantMap blockReply(QVariantMap);
-  void shareFile(QString);
+  void shareFile(QString, bool);
   void startDownload(QByteArray, QString);
   SharedFile *fileByHash(QByteArray);
-  QList<SharedFile*> searchFiles(QString);
+  QList<SharedFile*> searchFiles(QString, bool);
 signals:
   void postMessage(QString, QString, QString);
   void receivedBlocklist(QByteArray, qint64);

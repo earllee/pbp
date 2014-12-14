@@ -58,6 +58,8 @@ ChatDialog::ChatDialog(bool nofwd) {
   connect(sharingResults, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
 	  this, SLOT(startDownload(QListWidgetItem*)));
   sharingFiles = new QListWidget(sharingBox);
+  connect(sharingFiles, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+	  this, SLOT(fileClicked(QListWidgetItem*)));
   sharingLayout = new QGridLayout(sharingBox);
   sharingLayout->addWidget(sharingInput, 0, 0, 1, 2);
   sharingLayout->addWidget(sharingSearch, 0, 2, 1, 1);
@@ -128,7 +130,7 @@ void ChatDialog::newOrigin(QString name) {
 }
 
 void ChatDialog::messageable(QString name) {
-  setOriginState(name, "Messageable");
+  setOriginState(name, "HaveKey");
   QMessageBox msgBox;
   msgBox.setText(QString("%1 has been added to your web of trust.").arg(name));
   msgBox.setStandardButtons(QMessageBox::Ok);
@@ -146,7 +148,13 @@ void ChatDialog::setOriginState(QString name, QString state) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Connected") {
       item->setBackground(QBrush(QColor("#95A5A6")));
-    } else if (state == "Messageable") {
+    } else if (state == "HaveKey") {
+      item->setBackground(QBrush(QColor("#9B59B6")));
+    } else if (state == "Rejected") {
+      item->setBackground(QBrush(QColor("#E74C3C")));
+    } else if (state == "Pending") {
+      item->setBackground(QBrush(QColor("#3498DB")));
+    } else if (state == "Friend") {
       item->setBackground(QBrush(QColor("#2ECC71")));
     }
   }
@@ -155,25 +163,73 @@ void ChatDialog::setOriginState(QString name, QString state) {
 void ChatDialog::originClicked(QListWidgetItem *item) {
   QString state = item->data(Qt::UserRole).toString();
   QString name = item->text();
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
   if (state == "Connected") {
-    QMessageBox msgBox;
     msgBox.setText(QString("%1 is not in your web of trust.").arg(name));
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
-    msgBox.exec();
-  } else if (state == "Messageable") {
+  } else if (state == "HaveKey") {
+    msgBox.setText(QString("Are you sure you want to send a friend request to this origin (%1)?").arg(name));
+  } else if (state == "Pending") {
+    msgBox.setText(QString("Are you sure you want to resend a friend request to this origin (%1)?").arg(name));
+  } else if (state == "Rejected") {
+    msgBox.setText(QString("Are you sure you want to accept this origin's (%1) friend request even though you rejected it earlier?").arg(name));
+  } else if (state == "Friend") {
     ChatTab *tab;
-    QString name = name;
-    if(chats->contains(name))
+    if (chats->contains(name))
       tab = chats->value(name);
     else
       tab = newChatTab(name);
     tabs->setCurrentWidget(tab);
     tab->focus();
+    return;
+  }
+
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    if (state == "HaveKey") {
+      setOriginState(name, "Pending");
+      emit requestFriend(name);
+    } else if (state == "Pending") {
+      emit requestFriend(name);
+    } else if (state == "Rejected") {
+      setOriginState(name, "Friend");
+      emit friendApproved(name);
+    }    
+    break;
+    // don't do anything if no
   }
 }
 
+void ChatDialog::approveFriend(QString name) {
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  msgBox.setText(QString("%1 sent you a friend request. Accept?").arg(name));
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    setOriginState(name, "Friend");
+    emit friendApproved(name);
+    break;
+  case QMessageBox::No:
+    setOriginState(name, "Rejected");
+    break;
+  }
+}
+
+void ChatDialog::acceptedFriend(QString name) {
+  setOriginState(name, "Friend");
+  QMessageBox msgBox;
+  msgBox.setText(QString("%1 accepted your friend request.").arg(name));
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.setDefaultButton(QMessageBox::Ok);
+  msgBox.exec();
+}
+
 ChatTab *ChatDialog::newChatTab(QString name) {
+  qDebug() << "again";
   ChatTab *tab = new ChatTab(name);
   chats->insert(name, tab);
   tabs->addTab(tab, name);
@@ -272,10 +328,64 @@ void ChatDialog::openFileDialog() {
   QFileDialog dialog(this);
   dialog.setFileMode(QFileDialog::ExistingFiles);
   if (dialog.exec()) {
+    QMessageBox msgBox;
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
     foreach (QString filename, dialog.selectedFiles()) {
       sharingFiles->addItem(filename);
-      emit shareFile(filename);
+      msgBox.setText(QString("Make %1 private?").arg(filename));
+      switch (msgBox.exec()) {
+      case QMessageBox::Yes:
+	setFileState(filename, "Private");
+	emit shareFile(filename, true);
+	break;
+      case QMessageBox::No:
+	setFileState(filename, "Public");
+	emit shareFile(filename, false);
+	break;
+      }
     }
+  }
+}
+
+void ChatDialog::setFileState(QString filename, QString state) {
+  QList<QListWidgetItem*> items = sharingFiles->findItems(filename, Qt::MatchExactly);
+  if (items.empty())
+    sharingFiles->addItem(filename);
+  items = sharingFiles->findItems(filename, Qt::MatchExactly);
+
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Public") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    } else if (state == "Private") {
+      item->setBackground(QBrush(QColor("#9B59B6")));
+    }
+  }
+}
+
+void ChatDialog::fileClicked(QListWidgetItem *item) {
+  QString state = item->data(Qt::UserRole).toString();
+  QString filename = item->text();
+  QMessageBox msgBox;
+  msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  msgBox.setDefaultButton(QMessageBox::No);
+  if (state == "Public") {
+    msgBox.setText(QString("Are you sure you want to make %1 private?").arg(filename));
+  } else if (state == "Private") {
+    msgBox.setText(QString("Are you sure you want to make %1 public?").arg(filename));
+  }
+  switch (msgBox.exec()) {
+  case QMessageBox::Yes:
+    if (state == "Public") {
+      setFileState(filename, "Private");
+      emit filePrivate(filename, true);
+    } else if (state == "Private") {
+      setFileState(filename, "Public");
+      emit filePrivate(filename, false);
+    }    
+    break;
+    // don't do anything if no
   }
 }
 
@@ -289,11 +399,31 @@ void ChatDialog::initiateSearch() {
   emit search(query);
 }
 
-void ChatDialog::searchReply(QByteArray id, QString filename, QString origin) {
+void ChatDialog::searchReply(QByteArray id, QString filename, QString origin, bool isFriend) {
   results->insert(id, QPair<QString, QString>(filename, origin));
   sharingResults->addItem(filename);
+  if (isFriend)
+    setResultState(filename, "Friend");
+  else
+    setResultState(filename, "Public");
   QListWidgetItem *widget = sharingResults->item(sharingResults->count() - 1);
   widget->setData(Qt::UserRole, QVariant(id));
+}
+
+void ChatDialog::setResultState(QString filename, QString state) {
+  QList<QListWidgetItem*> items = sharingResults->findItems(filename, Qt::MatchExactly);
+  if (items.empty())
+    sharingResults->addItem(filename);
+  items = sharingResults->findItems(filename, Qt::MatchExactly);
+
+  foreach(QListWidgetItem *item, items) {
+    item->setData(Qt::UserRole, QVariant(state));
+    if (state == "Public") {
+      item->setBackground(QBrush(QColor("#95A5A6")));
+    } else if (state == "Friend") {
+      item->setBackground(QBrush(QColor("#2ECC71")));
+    }
+  }
 }
 
 void ChatDialog::startDownload(QListWidgetItem *item) {

@@ -28,27 +28,26 @@ public slots:
   void receiveMessage();
   void addPeer(QString);
   void routeRumor();
-  void shareFile(QString);
-  void requestTrust(QString); // send a trust request, of form host:port; 
-                              // slot from dialog; host:port
-  void trustApproved(QString); // slot from dialog; host:port
-                               // reply to approveTrust()
+
+  void shareFile(QString, bool);
+  void filePrivate(QString, bool);
+  void requestTrust(QString); // send a trust request
+  void trustApproved(QString); // reply to trust request
+  void requestFriend(QString); // send a friend request
+  void friendApproved(QString); // reply to friend request
 signals:
   void postMessage(QString, QString, QString);
   void newOrigin(QString);
   void newPeer(QString);
-  void searchReply(QByteArray, QString, QString);
+  void searchReply(QByteArray, QString, QString, bool);
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);
 
-  void approveTrust(QString); // ask to approve in chat; signal to dialog
-                              // Just received a req from else; host:port
- 
-  void acceptedTrust(QString); // requestee accepts; signal to dialog; host:port
-                               // Accepts our own req; reply to your
-                               // local req; host:port; second to reqTrust()
-  void messageable(QString); // received key for that peer; signal to dialog
-                             // origin
+  void approveTrust(QString); // ask to approve
+  void acceptedTrust(QString); // requestee accepts
+  void approveFriend(QString); // ask to approve
+  void acceptedFriend(QString); // requestee accepts
+  void messageable(QString); // received key for that peer
 };
 
 #endif

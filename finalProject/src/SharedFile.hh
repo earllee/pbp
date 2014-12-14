@@ -14,8 +14,9 @@ private:
   QByteArray *blocklist;
   QByteArray *blocklistHash;
   qint64 currentBlock;
+  bool priv;
 public:
-  SharedFile(QString);
+  SharedFile(QString, bool);
   SharedFile(QString, QByteArray, QByteArray bl = QByteArray());
   ~SharedFile();
   QByteArray blockRequest(QByteArray, QByteArray*);
@@ -23,6 +24,7 @@ public:
   QString getFilename();
   QByteArray getMeta();
   QByteArray getBlocklist();
+  bool isPrivate();
 signals:
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);

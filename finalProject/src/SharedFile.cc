@@ -11,8 +11,9 @@
 #define HASHSIZE 20
 #define BLOCKSIZE (1<<13)
 
-SharedFile::SharedFile(QString fn) {
+SharedFile::SharedFile(QString fn, bool isPriv) {
   filename = fn;
+  priv = isPriv;
   QFile file(fn);
   file.open(QIODevice::ReadOnly);
   fileSize = file.size();
@@ -110,4 +111,8 @@ QByteArray SharedFile::getMeta() {
 
 QByteArray SharedFile::getBlocklist() {
   return *blocklist;
+}
+
+bool SharedFile::isPrivate() {
+  return priv;
 }

@@ -215,6 +215,11 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
     handleBlockReply(datagram, from, to, hopLimit);
   else if (msgType == "Trust")
     handleTrust(datagram, sender);
+  else if (msgType == "FriendRequest")
+    handleFriendRequest(datagram, from, to, hopLimit);
+  else if (msgType == "FriendReply")
+    handleFriendReply(datagram, from, to, hopLimit);
+  else qDebug() << "unrecognized type" << msgType;
 }
 
 QCA::PublicKey PeerList::getKeyByOrigin(QString orig) {
@@ -299,23 +304,25 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
   } else {
     // I'm responding to a search request
     QString query = extractMessage(datagram).value("Search").toString();
-    QList<SharedFile*> files = myOrigin->searchFiles(query);
-    QVariantList filenames, ids;
-    foreach(SharedFile *file, files) {
-      filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
-      ids.append(QVariant(file->getMeta()));
+    QList<SharedFile*> files = myOrigin->searchFiles(query, isFriend(from->getName()));
+    if (files.size() > 0) {
+      QVariantList filenames, ids;
+      foreach(SharedFile *file, files) {
+	filenames.append(QVariant(QFileInfo(file->getFilename()).fileName()));
+	ids.append(QVariant(file->getMeta()));
+      }
+      QVariantMap reply;
+      reply.insert("Dest", QVariant(from->getName()));
+      reply.insert("Origin", QVariant(myName()));
+      reply.insert("HopLimit", QVariant(HOPLIMIT));
+      reply.insert("Type", QVariant("SearchReply"));
+      QVariantMap replyMessage;
+      replyMessage.insert("SearchReply", QVariant(query));
+      replyMessage.insert("MatchNames", QVariant(filenames));
+      replyMessage.insert("MatchIDs", QVariant(ids));
+      insertMessage(reply, replyMessage);
+      forwardMessage(reply, from, HOPLIMIT + 1);
     }
-    QVariantMap reply;
-    reply.insert("Dest", QVariant(from->getName()));
-    reply.insert("Origin", QVariant(myName()));
-    reply.insert("HopLimit", QVariant(HOPLIMIT));
-    reply.insert("Type", QVariant("SearchReply"));
-    QVariantMap replyMessage;
-    replyMessage.insert("SearchReply", QVariant(query));
-    replyMessage.insert("MatchNames", QVariant(filenames));
-    replyMessage.insert("MatchIDs", QVariant(ids));
-    insertMessage(reply, replyMessage);
-    forwardMessage(reply, from, HOPLIMIT + 1);
 
     // decide whether to propagate
     budget = budget - 1;
@@ -344,7 +351,7 @@ void PeerList::handleSearchReply(QVariantMap &datagram, Origin *from, Origin *de
 	if (results->size() >= 10)
 	  searchTimer->stop();
 	qDebug() << filenames.at(i).toString();
-	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName());
+	emit searchReply(ids.at(i).toByteArray(), filenames.at(i).toString(), from->getName(), isFriend(from->getName()));
       }
     }
   } else {
@@ -393,7 +400,7 @@ void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, qu
   if (toName == myName()) {
     bool ok;
     QVariantMap message = extractMessage(datagram, &ok);
-    if (!ok)
+    if (!ok || !isFriend(fromName))
       return;
     // post message sent to me
     emit postMessage(fromName,
@@ -402,6 +409,67 @@ void PeerList::handlePrivate(QVariantMap &datagram, Origin *from, Origin *to, qu
   } else if (fromName == myName()) {
     // forward
     forwardMessage(datagram, to, hopLimit + 1);
+  } else {
+    forwardMessage(datagram, to, hopLimit);
+  }
+}
+
+void PeerList::addPendingFriendReq(QString name, QString randStr) {
+    mySentFriendReqs[name] = randStr;
+}
+
+void PeerList::handleFriendRequest(QVariantMap &datagram, Origin *from, 
+Origin *to, quint32 hopLimit) 
+{
+  QString fromName = from->getName();
+  QString toName = to->getName();
+  
+  if (toName == myName()) {
+    bool ok;
+    QVariantMap message = extractMessage(datagram, &ok);
+    if (!ok) return;
+    // Do work here
+    // emit that someone is friending us
+    pendingFriendReqs[fromName] = message["FriendRequest"].toString();
+    emit approveFriend(fromName);
+    // Add that extracted mesg to a waiting queue
+  } else if (fromName == myName()) {
+    // mySentFriendReqs[toName] = message["FriendRequest"].toString();
+    forwardMessage(datagram, to, hopLimit + 1);
+  } else {
+    forwardMessage(datagram, to, hopLimit);
+  }
+}
+
+void PeerList::handleFriendReply(QVariantMap &datagram, Origin *from, 
+Origin *to, quint32 hopLimit) {
+  QString fromName = from->getName();
+  QString toName = to->getName();
+
+  if (toName == myName()) {
+    qDebug() << myName() << "recved friend reply from" << fromName;
+    bool ok;
+    QVariantMap message = extractMessage(datagram, &ok);
+    if (!ok) return;
+    // Check if is in pending and the strings match
+    // otherwise ignore
+    if (mySentFriendReqs.contains(fromName) &&
+        message["FriendReply"].toString() == mySentFriendReqs[fromName]) 
+    {
+        friendList.insert(fromName);
+        emit acceptedFriend(fromName);
+    } else {
+        qDebug() << myName() << "bad friend reply";
+
+    }
+  } else if (fromName == myName()) {
+    qDebug() << myName() << "sending friend reply to" << toName;
+    QVariantMap message;
+    message["FriendReply"] = pendingFriendReqs[toName];
+    insertMessage(datagram, message);
+    forwardMessage(datagram, to, hopLimit + 1);
+    friendList.insert(toName);
+    emit acceptedFriend(toName);
   } else {
     forwardMessage(datagram, to, hopLimit);
   }
@@ -595,17 +663,19 @@ void PeerList::sentMessage(QHostAddress host, quint16 port) {
   recipient->wait();
 }
 
-void PeerList::shareFile(QString filename) {
-  myOrigin->shareFile(filename);
+void PeerList::shareFile(QString filename, bool isPrivate) {
+  myOrigin->shareFile(filename, isPrivate);
 }
 
 // changes the map if it's a private message
 QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool *ok) {
   QString msgType = datagram["Type"].toString();
-  if (msgType == "Private" ||
+  if (msgType == "Private"      ||
       msgType == "BlockRequest" ||
-      msgType == "BlockReply" || 
-      msgType == "SearchReply") {
+      msgType == "BlockReply"   || 
+      msgType == "SearchReply"  ||
+      msgType == "FriendRequest"||
+      msgType == "FriendReply" ) {
     *ok = decryptMap(datagram,
 		     getKeyByOrigin(datagram["Origin"].toString()), 
 		     privKey);
@@ -627,10 +697,12 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
   datagram.insert("Message", buffer);
 
   QString msgType = datagram["Type"].toString();
-  if (msgType == "Private" ||
+  if (msgType == "Private"      ||
       msgType == "BlockRequest" ||
-      msgType == "BlockReply" || 
-      msgType == "SearchReply") {
+      msgType == "BlockReply"   || 
+      msgType == "SearchReply"  ||
+      msgType == "FriendRequest"||
+      msgType == "FriendReply" ) {
     if (!encryptMap(datagram,
 		    getKeyByOrigin(datagram["Dest"].toString()), 
 		    privKey)) {
@@ -638,4 +710,8 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
       exit(1);
     }
   }
+}
+
+bool PeerList::isFriend(QString origin) {
+  return friendList.contains(origin);
 }

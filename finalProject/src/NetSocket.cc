@@ -47,8 +47,8 @@ bool NetSocket::bind(bool nofwd) {
 	      this, SIGNAL(postMessage(QString, QString, QString)));
       connect(peers, SIGNAL(newOrigin(QString)),
 	      this, SIGNAL(newOrigin(QString)));
-      connect(peers, SIGNAL(searchReply(QByteArray, QString, QString)),
-	      this, SIGNAL(searchReply(QByteArray, QString, QString)));
+      connect(peers, SIGNAL(searchReply(QByteArray, QString, QString, bool)),
+	      this, SIGNAL(searchReply(QByteArray, QString, QString, bool)));
       connect(peers, SIGNAL(receivedBlocklist(QByteArray, qint64)),
 	      this, SIGNAL(receivedBlocklist(QByteArray, qint64)));
       connect(peers, SIGNAL(receivedBlock(QByteArray, qint64)),
@@ -61,7 +61,11 @@ bool NetSocket::bind(bool nofwd) {
               this, SIGNAL(acceptedTrust(QString)));
       connect(peers, SIGNAL(messageable(QString)), 
               this, SIGNAL(messageable(QString)));
-                 
+      connect(peers, SIGNAL(approveFriend(QString)),
+              this, SIGNAL(approveFriend(QString)));
+      connect(peers, SIGNAL(acceptedFriend(QString)),
+              this, SIGNAL(acceptedFriend(QString)));
+
       for (int port = myPortMin; port <= myPortMax; port++) {
 	if (port != p)
 	  peers->add(QHostAddress::LocalHost, port);
@@ -139,8 +143,12 @@ void NetSocket::searchMessage(QString search) {
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
-void NetSocket::shareFile(QString filename) {
-  peers->shareFile(filename);
+void NetSocket::shareFile(QString filename, bool isPrivate) {
+  peers->shareFile(filename, isPrivate);
+}
+
+void NetSocket::filePrivate(QString filename, bool isPrivate) {
+
 }
 
 // Construct, send message to given peerStr
@@ -152,6 +160,38 @@ void NetSocket::trustApproved(QString peer) {
   peers->processPendingKeys(peer);
   // send response to requesting peer
   // Let PeerList know that we may process the keys now of given peer
+}
+
+void NetSocket::requestFriend(QString name) {
+  // peers->requestFriend(name);
+  // placeholder to auto accept
+  QVariantMap datagram, message;
+  datagram.insert("Origin", QVariant(peers->myName()));
+  datagram.insert("Dest", QVariant(name));
+  datagram.insert("HopLimit", QVariant(HOPLIMIT));
+  datagram.insert("Type", QVariant("FriendRequest"));
+ 
+  QString randStr = QString::number(qrand());
+  peers->addPendingFriendReq(name, randStr); 
+  message.insert("FriendRequest", randStr);
+  peers->insertMessage(datagram, message);
+  peers->newMessage(peers->myHost(), peers->myPort(), datagram);
+  // emit acceptedFriend(name);
+  // emit approveFriend("test");
+}
+
+void NetSocket::friendApproved(QString name) {
+  qDebug() << peers->myName() << "approved req from" << name;
+  QVariantMap datagram;
+  datagram.insert("Origin", QVariant(peers->myName()));
+  datagram.insert("Dest", QVariant(name));
+  datagram.insert("HopLimit", QVariant(HOPLIMIT));
+  datagram.insert("Type", QVariant("FriendReply"));
+ 
+  // peers->friendApproved(name);
+  peers->newMessage(peers->myHost(), peers->myPort(), datagram);
+  //
+  // send response to requesting origin
 }
 
 void NetSocket::routeRumor() {
