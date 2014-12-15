@@ -222,10 +222,6 @@ void PeerList::newMessage(QHostAddress host, quint16 port, QVariantMap &datagram
   else qDebug() << "unrecognized type" << msgType;
 }
 
-QCA::PublicKey PeerList::getKeyByOrigin(QString orig) {
-    return QCA::PublicKey::fromDER(msgableOrigins[orig]);
-}
-
 // Sends trust request to given peer string
 void PeerList::requestTrust(QString peer) {
   trustedPeers[peer] = 1;
@@ -320,7 +316,7 @@ void PeerList::handleSearchRequest(QVariantMap &datagram, Origin *from, quint32 
       replyMessage.insert("SearchReply", QVariant(query));
       replyMessage.insert("MatchNames", QVariant(filenames));
       replyMessage.insert("MatchIDs", QVariant(ids));
-      insertMessage(reply, replyMessage);
+      if (!insertMessage(reply, replyMessage)) return;
       forwardMessage(reply, from, HOPLIMIT + 1);
     }
 
@@ -466,7 +462,7 @@ Origin *to, quint32 hopLimit) {
     qDebug() << myName() << "sending friend reply to" << toName;
     QVariantMap message;
     message["FriendReply"] = pendingFriendReqs[toName];
-    insertMessage(datagram, message);
+    if (!insertMessage(datagram, message)) return;
     forwardMessage(datagram, to, hopLimit + 1);
     friendList.insert(toName);
     emit acceptedFriend(toName);
@@ -501,7 +497,7 @@ void PeerList::handleStatus(QVariantMap &datagram, Peer *sender) {
       reply.insert("Type", QVariant("Rumor"));
       reply.insert("Origin", o->getName());
       message = o->message(needed);
-      insertMessage(reply, message);
+      if (!insertMessage(reply, message)) return;
       emit sendMessage(sender->getHost(), sender->getPort(), reply);
       return;
     }
@@ -564,7 +560,7 @@ void PeerList::handleBlockRequest(QVariantMap &datagram, Origin *from, Origin *t
     reply.insert("Origin", myName());
     reply.insert("HopLimit", QVariant(HOPLIMIT));
     reply.insert("Type", QVariant("BlockReply"));
-    insertMessage(reply, message);
+    if (!insertMessage(reply, message)) return;
     forwardMessage(reply, from, HOPLIMIT + 1);
   } else if (from->getName() == myName()) {
     forwardMessage(datagram, to, hopLimit + 1);
@@ -587,7 +583,7 @@ void PeerList::handleBlockReply(QVariantMap &datagram, Origin *from, Origin *to,
     request.insert("Origin", myName());
     request.insert("HopLimit", QVariant(HOPLIMIT));
     request.insert("Type", QVariant("BlockRequest"));
-    insertMessage(request, message);
+    if (!insertMessage(request, message)) return;
     forwardMessage(request, from, HOPLIMIT + 1);
   } else if (from->getName() == myName()) {
     forwardMessage(datagram, to, hopLimit + 1);
@@ -676,8 +672,13 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool *ok) {
       msgType == "SearchReply"  ||
       msgType == "FriendRequest"||
       msgType == "FriendReply" ) {
+    QString orig = datagram["Origin"].toString();
+    if (!msgableOrigins.contains(orig)) {
+        *ok = false;
+        return QVariantMap();
+    }
     *ok = decryptMap(datagram,
-		     getKeyByOrigin(datagram["Origin"].toString()), 
+                     QCA::PublicKey::fromDER(msgableOrigins[orig]),
 		     privKey);
     if (!(*ok))
       return QVariantMap();
@@ -690,7 +691,7 @@ QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool *ok) {
 }
 
 // changes the map if it's a private message
-void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
+bool PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
   QByteArray buffer;
   QDataStream stream(&buffer, QIODevice::WriteOnly);
   stream << message;
@@ -703,13 +704,16 @@ void PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
       msgType == "SearchReply"  ||
       msgType == "FriendRequest"||
       msgType == "FriendReply" ) {
+    QString orig = datagram["Origin"].toString();
+    if (!msgableOrigins.contains(orig)) return false;
     if (!encryptMap(datagram,
-		    getKeyByOrigin(datagram["Dest"].toString()), 
+                    QCA::PublicKey::fromDER(msgableOrigins[orig]),
 		    privKey)) {
       qDebug() << "encryption failed, exiting for security";
-      exit(1);
+      return false; 
     }
   }
+  return true;
 }
 
 bool PeerList::isFriend(QString origin) {

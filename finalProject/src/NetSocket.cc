@@ -117,7 +117,7 @@ void NetSocket::localMessage(QString text, QString dest) {
     datagram.insert("HopLimit", QVariant(HOPLIMIT));
     datagram.insert("Type", QVariant("Private"));
   }
-  peers->insertMessage(datagram, message);
+  if (!peers->insertMessage(datagram, message)) return;
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -129,7 +129,7 @@ void NetSocket::fileMessage(QByteArray hash, QString filename, QString dest) {
   datagram.insert("HopLimit", QVariant(HOPLIMIT));
   datagram.insert("Type", QVariant("BlockRequest"));
   message.insert("BlockRequest", QVariant(hash));
-  peers->insertMessage(datagram, message);
+  if (!peers->insertMessage(datagram, message)) return;
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
 }
 
@@ -174,7 +174,7 @@ void NetSocket::requestFriend(QString name) {
   QString randStr = QString::number(qrand());
   peers->addPendingFriendReq(name, randStr); 
   message.insert("FriendRequest", randStr);
-  peers->insertMessage(datagram, message);
+  if (!peers->insertMessage(datagram, message)) return;
   peers->newMessage(peers->myHost(), peers->myPort(), datagram);
   // emit acceptedFriend(name);
   // emit approveFriend("test");

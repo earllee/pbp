@@ -77,8 +77,6 @@ private:
   // To be called when adding keys
   void processNewKeys(QVariantMap, Peer *);
 
-  QCA::PublicKey getKeyByOrigin(QString);
-
   bool isFriend(QString);
 public:
   PeerList(quint16, bool nf = false);
@@ -102,7 +100,7 @@ public:
   // Send trust request to given peerstring
   void requestTrust(QString);
 
-  void insertMessage(QVariantMap&, QVariantMap&); /* Insert second arg into first */
+  bool insertMessage(QVariantMap&, QVariantMap&); /* Insert second arg into first */
   QVariantMap extractMessage(QVariantMap&, bool *ok = NULL);
 
   // To be called after trust approved
