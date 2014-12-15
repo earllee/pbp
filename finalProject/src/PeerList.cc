@@ -663,6 +663,10 @@ void PeerList::shareFile(QString filename, bool isPrivate) {
   myOrigin->shareFile(filename, isPrivate);
 }
 
+void NetSocket::filePrivate(QString filename, bool isPrivate) {
+  myOrigin->filePrivate(filename, isPrivate);
+}
+
 // changes the map if it's a private message
 QVariantMap PeerList::extractMessage(QVariantMap &datagram, bool *ok) {
   QString msgType = datagram["Type"].toString();
@@ -704,7 +708,7 @@ bool PeerList::insertMessage(QVariantMap &datagram, QVariantMap &message) {
       msgType == "SearchReply"  ||
       msgType == "FriendRequest"||
       msgType == "FriendReply" ) {
-    QString orig = datagram["Origin"].toString();
+    QString orig = datagram["Dest"].toString();
     if (!msgableOrigins.contains(orig)) return false;
     if (!encryptMap(datagram,
                     QCA::PublicKey::fromDER(msgableOrigins[orig]),

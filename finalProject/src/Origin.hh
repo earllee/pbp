@@ -39,6 +39,7 @@ public:
   QVariantMap blockRequest(QVariantMap, Origin*);
   QVariantMap blockReply(QVariantMap);
   void shareFile(QString, bool);
+  void filePrivate(QString, bool);
   void startDownload(QByteArray, QString);
   SharedFile *fileByHash(QByteArray);
   QList<SharedFile*> searchFiles(QString, bool);

@@ -99,6 +99,7 @@ public:
 
   // Send trust request to given peerstring
   void requestTrust(QString);
+  void filePrivate(QString, bool);
 
   bool insertMessage(QVariantMap&, QVariantMap&); /* Insert second arg into first */
   QVariantMap extractMessage(QVariantMap&, bool *ok = NULL);

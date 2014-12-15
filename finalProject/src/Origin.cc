@@ -80,6 +80,10 @@ void Origin::shareFile(QString filename, bool isPrivate) {
   files->insert(file->getMeta(), file);
 }
 
+void NetSocket::filePrivate(QString filename, bool isPrivate) {
+  peers->filePrivate(filename, isPrivate);
+}
+
 SharedFile *Origin::fileByHash(QByteArray metaHash) {
   return files->value(metaHash);
 }

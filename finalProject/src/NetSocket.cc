@@ -148,7 +148,7 @@ void NetSocket::shareFile(QString filename, bool isPrivate) {
 }
 
 void NetSocket::filePrivate(QString filename, bool isPrivate) {
-
+  peers->filePrivate(filename, isPrivate);
 }
 
 // Construct, send message to given peerStr
