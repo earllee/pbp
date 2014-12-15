@@ -25,6 +25,7 @@ public:
   QByteArray getMeta();
   QByteArray getBlocklist();
   bool isPrivate();
+  void setPrivate(bool);
 signals:
   void receivedBlocklist(QByteArray, qint64);
   void receivedBlock(QByteArray, qint64);

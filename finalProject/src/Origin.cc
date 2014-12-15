@@ -14,6 +14,7 @@ Origin::Origin(QString n, Peer *h) {
   messages = new QVector<QVariantMap>();
   files = new QMap<QByteArray, SharedFile*>();
   downloads = new QMap<QByteArray, SharedFile*>();
+  filenames = new QMap<QString, SharedFile*>();
   hop = h;
   direct = false;
   qDebug() << QString("New hop for %1 is %2:%3").arg(name).arg(hop->getHost().toString()).arg(hop->getPort());
@@ -78,10 +79,11 @@ Peer *Origin::getHop() {
 void Origin::shareFile(QString filename, bool isPrivate) {
   SharedFile *file = new SharedFile(filename, isPrivate);
   files->insert(file->getMeta(), file);
+  filenames->insert(filename, file);
 }
 
-void NetSocket::filePrivate(QString filename, bool isPrivate) {
-  peers->filePrivate(filename, isPrivate);
+void Origin::filePrivate(QString filename, bool isPrivate) {
+  filenames->value(filename)->setPrivate(isPrivate);
 }
 
 SharedFile *Origin::fileByHash(QByteArray metaHash) {

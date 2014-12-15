@@ -663,7 +663,7 @@ void PeerList::shareFile(QString filename, bool isPrivate) {
   myOrigin->shareFile(filename, isPrivate);
 }
 
-void NetSocket::filePrivate(QString filename, bool isPrivate) {
+void PeerList::filePrivate(QString filename, bool isPrivate) {
   myOrigin->filePrivate(filename, isPrivate);
 }
 

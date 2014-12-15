@@ -26,6 +26,7 @@ private:
   // downloaded from me by that origin where the key is the next expected
   // block request
   QMap<QByteArray, SharedFile*> *downloads;
+  QMap<QString, SharedFile*> *filenames;
   Peer *hop;
   bool direct;
 public:

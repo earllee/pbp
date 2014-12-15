@@ -116,3 +116,7 @@ QByteArray SharedFile::getBlocklist() {
 bool SharedFile::isPrivate() {
   return priv;
 }
+
+void SharedFile::setPrivate(bool isPrivate) {
+  priv = isPrivate;
+}
