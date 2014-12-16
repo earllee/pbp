@@ -419,7 +419,7 @@ void ChatDialog::setResultState(QString filename, QString state) {
   foreach(QListWidgetItem *item, items) {
     item->setData(Qt::UserRole, QVariant(state));
     if (state == "Public") {
-      item->setBackground(QBrush(QColor("#95A5A6")));
+      item->setBackground(QBrush(QColor("#9B59B6")));
     } else if (state == "Friend") {
       item->setBackground(QBrush(QColor("#2ECC71")));
     }
